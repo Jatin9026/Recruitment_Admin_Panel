@@ -43,7 +43,7 @@ const BulkMail = () => {
 
     try {
       setLoading(true);
-      // Instead of API call, just simulate sending
+      // Simulate sending emails delay
       setTimeout(() => {
         alert(
           `✅ Emails sent!\nTemplate: ${selectedTemplate}\nRecipients: ${selectedRecipients.length}`
@@ -60,16 +60,20 @@ const BulkMail = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Bulk Mail</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-8 flex flex-col max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 border-b border-gray-300 dark:border-gray-700 pb-4">
+        Bulk Mail
+      </h1>
 
       {/* Template Selector */}
-      <div className="mb-4 p-4 bg-white shadow rounded">
-        <label className="block font-medium mb-2">Select Template</label>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 max-w-lg w-full">
+        <label className="block font-semibold mb-3 text-lg">
+          Select Template
+        </label>
         <select
           value={selectedTemplate}
           onChange={(e) => setSelectedTemplate(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
         >
           <option value="">-- Select Template --</option>
           {templates.map((t) => (
@@ -81,27 +85,36 @@ const BulkMail = () => {
       </div>
 
       {/* Recipients List */}
-      <div className="mb-4 p-4 bg-white shadow rounded">
-        <h2 className="font-semibold mb-2">Select Recipients</h2>
-        <div className="max-h-64 overflow-y-auto border rounded p-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-10 max-w-3xl w-full">
+        <h2 className="text-xl font-semibold mb-4">Select Recipients</h2>
+        <div className="max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3 space-y-2">
           {recipients.map((r) => (
-            <label key={r._id} className="block mb-1">
+            <label
+              key={r._id}
+              className="flex items-center cursor-pointer select-none"
+            >
               <input
                 type="checkbox"
                 checked={selectedRecipients.includes(r._id)}
                 onChange={() => handleRecipientToggle(r._id)}
-                className="mr-2"
+                className="mr-3 h-5 w-5 accent-blue-600 dark:accent-blue-500"
               />
-              {r.name} ({r.email})
+              <span>
+                <span className="font-medium">{r.name}</span>{" "}
+                <span className="text-gray-600 dark:text-gray-400 text-sm">
+                  ({r.email})
+                </span>
+              </span>
             </label>
           ))}
         </div>
       </div>
 
+      {/* Send Button */}
       <button
         onClick={handleSend}
         disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        className="px-6 py-3 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed max-w-xs w-full"
       >
         {loading ? "Sending..." : "Send Bulk Email"}
       </button>

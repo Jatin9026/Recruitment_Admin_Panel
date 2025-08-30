@@ -1,93 +1,64 @@
-
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import dummyApplicants from "../../data/dummyApplicants";
+import dummySlots from "../../data/dummySlots";
 
 const ManageSlots = ({ role }) => {
-  const [applicants, setApplicants] = useState([]);
-  const [slots, setSlots] = useState({}); 
+  const [applicants, setApplicants] = useState(dummyApplicants);
 
-  useEffect(() => {
-    const fetchApplicants = async () => {
-      try {
-        const res = await axios.get("/api/applicants"); 
-        console.log("API response:", res.data); 
-        if (Array.isArray(res.data)) {
-          setApplicants(res.data);
-        } else if (Array.isArray(res.data.applicants)) {
-          setApplicants(res.data.applicants);
-        } else {
-          setApplicants([]);
-        }
-      } catch (err) {
-        console.error("Error fetching applicants", err);
-        setApplicants([]); 
-      }
-    };
-  
-    fetchApplicants();
-  }, []);
-  
-
-  const handleSlotChange = (applicantId, value) => {
-    setSlots((prev) => ({ ...prev, [applicantId]: value }));
-  };
-
-  const handleSubmit = (applicantId) => {
-    const slotValue = slots[applicantId];
-    axios
-      .post("/api/manage-slots", { applicantId, slot: slotValue })
-      .then(() => {
-        alert("Slot assigned successfully!");
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Error assigning slot");
-      });
+  const handleAssign = (applicantId, slotId) => {
+    const slot = dummySlots.find((s) => s.id === slotId);
+    setApplicants((prev) =>
+      prev.map((a) =>
+        a.id === applicantId ? { ...a, slot } : a
+      )
+    );
+    alert(`Assigned slot ${slotId} to applicant ${applicantId}`);
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Manage Interview Slots</h1>
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">Applicant Name</th>
-            <th className="border px-4 py-2">Current Slot</th>
-            <th className="border px-4 py-2">Assign/Reschedule</th>
-            <th className="border px-4 py-2">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {applicants.map((applicant) => (
-            <tr key={applicant.id}>
-              <td className="border px-4 py-2">{applicant.name}</td>
-              <td className="border px-4 py-2">{applicant.slot || "Not Assigned"}</td>
-              <td className="border px-4 py-2">
-                <input
-                  type="text"
-                  value={slots[applicant.id]}
-                  onChange={(e) => handleSlotChange(applicant.id, e.target.value)}
-                  className="border px-2 py-1 w-full"
-                  disabled={
-                    applicant.slot && role !== "Super-Admin"
-                  } // only Super-Admin can change assigned slot
-                />
-              </td>
-              <td className="border px-4 py-2">
-                <button
-                  className="bg-blue-500 text-white px-4 py-1 rounded"
-                  onClick={() => handleSubmit(applicant.id)}
-                  disabled={applicant.slot && role !== "Super-Admin"}
-                >
-                  {applicant.slot ? "Reschedule" : "Assign"}
-                </button>
-              </td>
+      <h1 className="text-2xl font-bold mb-6">Manage Slots</h1>
+      <div className="overflow-x-auto shadow rounded">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2">ID</th>
+              <th className="px-4 py-2">Name</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Current Slot</th>
+              <th className="px-4 py-2">Assign/Reschedule</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {applicants.map((a) => (
+              <tr key={a.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2">{a.id}</td>
+                <td className="px-4 py-2">{a.name}</td>
+                <td className="px-4 py-2">{a.status}</td>
+                <td className="px-4 py-2">
+                  {a.slot ? new Date(a.slot.startAt).toLocaleString() : "—"}
+                </td>
+                <td className="px-4 py-2">
+                  <select
+                    onChange={(e) => handleAssign(a.id, e.target.value)}
+                    defaultValue=""
+                    className="border rounded px-2 py-1"
+                    disabled={a.slot && role !== "Super-Admin"}
+                  >
+                    <option value="">-- Select Slot --</option>
+                    {dummySlots.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {new Date(s.startAt).toLocaleString()} (Room {s.room})
+                      </option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
-
 export default ManageSlots;

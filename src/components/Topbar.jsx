@@ -1,5 +1,4 @@
-import React from "react";
-
+import React, { useState, useEffect } from "react";
 
 const rolePriority = {
   MEMBER: 1,
@@ -8,7 +7,6 @@ const rolePriority = {
   ADMIN: 4,
   SUPER: 5,
 };
-
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", minRole: 1 },
@@ -25,17 +23,30 @@ const navItems = [
 ];
 
 export default function Tobbar({ user }) {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   const userRole = user?.role || "MEMBER";
   const userLevel = rolePriority[userRole];
 
   return (
     <nav className="w-full bg-gray-900 text-white shadow-md px-6 py-3 flex items-center justify-between">
-
-      <div className="text-xl font-bold tracking-wide">
-        Club Recruitment Panel
+      <div className="flex items-center space-x-6">
+        <div className="text-xl font-bold tracking-wide">
+          ADMIN PANEL
+        </div>
+        <div className="text-sm text-gray-400">
+          {currentTime.toLocaleString()}
+        </div>
       </div>
-
-
+      
       <ul className="flex space-x-6">
         {navItems
           .filter((item) => userLevel >= item.minRole)
@@ -50,7 +61,6 @@ export default function Tobbar({ user }) {
             </li>
           ))}
       </ul>
-
 
       <div className="flex items-center space-x-4">
         <span className="text-sm text-gray-300">

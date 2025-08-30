@@ -1,22 +1,17 @@
-// src/pages/login/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthAPI } from "../../utils/api"; // your API helper
-
+import { AuthAPI } from "../../utils/api";
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
-
       const res = await loginUser({ email, password });
       localStorage.setItem("token", res.token);
       localStorage.setItem("role", res.user.role);

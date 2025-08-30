@@ -8,8 +8,6 @@ const useApplicantStore = create((set, get) => ({
   selectedApplicant: null,
   loading: false,
   error: null,
-
-
   fetchApplicants: async () => {
     try {
       set({ loading: true, error: null });

@@ -1,20 +1,13 @@
 import React from "react";
 
-/**
- * formInput.jsx
- * Generic form input abstraction aligned with Admin Panel MPA spec.
- * - Compatible with server-rendered <form method="POST"> submits.
- * - Enforces role-based access control.
- * - Supports text, email, password, select, textarea, datetime, checkbox.
- * - Outputs pure HTML (no JS required client-side).
- */
+
 
 export default function FormInput({
   name,
   label,
   type = "text",
   value = "",
-  options = [], // for select dropdowns
+  options = [], 
   required = false,
   readOnly = false,
   placeholder = "",
@@ -22,7 +15,7 @@ export default function FormInput({
   roleLevel = 1,
   minRole = 1,
 }) {
-  if (roleLevel < minRole) return null; // enforce role-based UI gating
+  if (roleLevel < minRole) return null;
 
   const commonProps = {
     id: name,
@@ -66,13 +59,3 @@ export default function FormInput({
     </div>
   );
 }
-
-/**
- * Example usage in a server-rendered form (MPA):
- *
- * <form method="POST" action="/auth/login">
- *   <FormInput name="email" label="Email" type="email" required />
- *   <FormInput name="password" label="Password" type="password" required />
- *   <button type="submit">Login</button>
- * </form>
- */

@@ -43,7 +43,7 @@ function App() {
         <Route path="/interview/domain" element={<DomainInterview />} />
 
         {/* Slots */}
-        <Route path="/slots/manage" element={<ManageSlots />} />
+        <Route path="/slot" element={<ManageSlots />} />
 
         {/* Mail */}
         <Route path="/mail/templates" element={<MailTemplate />} />
