@@ -1,8 +1,4 @@
 import React, { useState } from "react";
-import { Card, CardContent } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Badge } from "../../components/ui/badge";
 import dummyApplicants from "../../data/dummyApplicants";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -58,11 +54,11 @@ export default function CheckIn({ role }) {
 
   if (role < 1) {
     return (
-      <Card className="max-w-lg mx-auto mt-12 mx-4">
-        <CardContent className="p-4">
+      <div className="max-w-lg mx-auto mt-12 mx-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="p-4">
           <p className="text-red-600 text-center">Access Denied: Members or higher only</p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -70,8 +66,8 @@ export default function CheckIn({ role }) {
     <div className="space-y-4 lg:space-y-6 w-full p-3 sm:p-4 lg:p-6">
       <Toaster position="top-right" />
 
-      <Card className="w-full shadow-md border rounded-lg">
-        <CardContent className="space-y-4 p-4 lg:p-6">
+      <div className="w-full shadow-md border rounded-lg bg-white">
+        <div className="space-y-4 p-4 lg:p-6">
           <div className="border-b pb-3">
             <h2 className="text-lg sm:text-xl font-bold">Check-In Applicants</h2>
           </div>
@@ -80,32 +76,31 @@ export default function CheckIn({ role }) {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
             onSubmit={searchApplicants}
           >
-            <Input
+            <input
               type="text"
               placeholder="Search by name..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="text-sm sm:text-base"
+              className="text-sm sm:text-base flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <Input
+            <input
               type="text"
               placeholder="Search by Library ID..."
               value={libraryId}
               onChange={(e) => setLibraryId(e.target.value)}
-              className="text-sm sm:text-base"
+              className="text-sm sm:text-base flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <Button
+            <button
               type="submit"
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-800 w-full sm:col-span-2 lg:col-span-1 text-sm sm:text-base h-9 sm:h-10"
+              className="bg-blue-600 hover:bg-blue-800 w-full sm:col-span-2 lg:col-span-1 text-sm sm:text-base h-9 sm:h-10 inline-flex items-center justify-center rounded-md font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
             >
               Search
-            </Button>
+            </button>
           </form>
 
           <div className="flex flex-wrap gap-2 pt-2">
             {uniqueBranches.map((b) => (
-              <Badge
+              <span
                 key={b}
                 onClick={() => toggleBranch(b)}
                 className={`cursor-pointer px-2 sm:px-3 py-1 rounded-full transition text-xs sm:text-sm min-h-[32px] flex items-center ${
@@ -115,27 +110,25 @@ export default function CheckIn({ role }) {
                 }`}
               >
                 {b}
-              </Badge>
+              </span>
             ))}
             {branch && (
-              <Button
-                size="sm"
-                variant="outline"
+              <button
                 onClick={() => {
                   setBranch("");
                   setResults(dummyApplicants);
                 }}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8 px-2 sm:px-3"
+                className="border border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8 px-2 sm:px-3 rounded-md bg-transparent transition-colors focus:outline-none"
               >
                 Clear Filter
-              </Button>
+              </button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="w-full shadow-md border rounded-lg">
-        <CardContent className="p-2 sm:p-4 lg:p-6">
+      <div className="w-full shadow-md border rounded-lg bg-white">
+        <div className="p-2 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between mb-4 px-2 sm:px-0">
             <h3 className="font-semibold text-base sm:text-lg">Applicants</h3>
             <span className="text-xs sm:text-sm text-gray-500">
@@ -177,13 +170,12 @@ export default function CheckIn({ role }) {
                         <td className="px-4 py-2 border">{a.year}</td>
                         <td className="px-4 py-2 border">{a.assignedDomain}</td>
                         <td className="px-4 py-2 border text-center">
-                          <Button
+                          <button
                             onClick={() => checkInAndRemoveApplicant(a.id)}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-800 text-white w-24 lg:w-28 text-xs lg:text-sm"
+                            className="bg-blue-600 hover:bg-blue-800 text-white w-24 lg:w-28 text-xs lg:text-sm inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none h-9 px-3"
                           >
                             Mark Present
-                          </Button>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -200,8 +192,8 @@ export default function CheckIn({ role }) {
               </div>
             ) : (
               results.map((a) => (
-                <Card key={a.id} className="border border-gray-200">
-                  <CardContent className="p-4 space-y-2">
+                <div key={a.id} className="border border-gray-200 bg-white rounded-lg shadow-sm">
+                  <div className="p-4 space-y-2">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1 flex-1">
                         <h4 className="font-medium text-sm">{a.name}</h4>
@@ -212,21 +204,20 @@ export default function CheckIn({ role }) {
                           <span className="bg-gray-100 px-2 py-1 rounded">{a.assignedDomain}</span>
                         </div>
                       </div>
-                      <Button
+                      <button
                         onClick={() => checkInAndRemoveApplicant(a.id)}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-800 text-white text-xs px-3 py-2 ml-2"
+                        className="bg-blue-600 hover:bg-blue-800 text-white text-xs px-3 py-2 ml-2 rounded-md inline-flex items-center justify-center font-medium transition-colors focus:outline-none"
                       >
                         Present
-                      </Button>
+                      </button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
