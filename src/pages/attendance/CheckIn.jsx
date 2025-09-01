@@ -60,7 +60,7 @@ export default function CheckIn({ role }) {
     return (
       <Card className="max-w-lg mx-auto mt-12 mx-4">
         <CardContent className="p-4">
-          <p className="text-red-600 text-center">Access Denied: Members or higher only.</p>
+          <p className="text-red-600 text-center">Access Denied: Members or higher only</p>
         </CardContent>
       </Card>
     );
