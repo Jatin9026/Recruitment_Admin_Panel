@@ -1,7 +1,4 @@
 import React from "react";
-
-
-
 export default function FormInput({
   name,
   label,
@@ -16,7 +13,6 @@ export default function FormInput({
   minRole = 1,
 }) {
   if (roleLevel < minRole) return null;
-
   const commonProps = {
     id: name,
     name,
@@ -35,7 +31,6 @@ export default function FormInput({
           {label}
         </label>
       )}
-
       {type === "select" ? (
         <select {...commonProps} defaultValue={value || ""}>
           <option value="" disabled>
@@ -54,7 +49,6 @@ export default function FormInput({
       ) : (
         <input {...commonProps} type={type} />
       )}
-
       {helpText && <p className="text-sm text-gray-500">{helpText}</p>}
     </div>
   );

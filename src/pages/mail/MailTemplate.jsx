@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const MailTemplate = () => {
   const [templates, setTemplates] = useState([]);
@@ -6,7 +7,6 @@ const MailTemplate = () => {
   const [form, setForm] = useState({ templateKey: "", subject: "", body: "" });
   const [loading, setLoading] = useState(false);
 
-  // Dummy Data
   const dummyTemplates = [
     { _id: "1", templateKey: "welcome", subject: "Welcome to Our Drive", body: "Hello {{name}}, welcome!" },
     { _id: "2", templateKey: "interview", subject: "Interview Invitation", body: "Dear {{name}}, your interview is scheduled for {{date}}" },
@@ -16,14 +16,13 @@ const MailTemplate = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      // simulate backend call
       setTimeout(() => {
         setTemplates(dummyTemplates);
         setLoading(false);
       }, 500);
     } catch (err) {
       console.error(err);
-      alert("Error fetching templates");
+      toast.error("Error fetching templates");
       setLoading(false);
     }
   };
@@ -38,24 +37,20 @@ const MailTemplate = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (editingTemplate) {
-      // Simulate Update
       const updated = templates.map((t) =>
         t._id === editingTemplate._id ? { ...t, ...form } : t
       );
       setTemplates(updated);
-      alert("✅ Template updated successfully");
+      toast.success("Template updated successfully");
     } else {
-      // Simulate Create
       const newTemplate = {
         _id: Date.now().toString(),
         ...form,
       };
       setTemplates([...templates, newTemplate]);
-      alert("✅ Template created successfully");
+      toast.success("Template created successfully");
     }
-
     setForm({ templateKey: "", subject: "", body: "" });
     setEditingTemplate(null);
   };
@@ -70,9 +65,8 @@ const MailTemplate = () => {
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this template?")) return;
     setTemplates(templates.filter((t) => t._id !== id));
-    alert("🗑️ Template deleted");
+    toast.success("Template deleted");
   };
 
   return (
@@ -81,7 +75,6 @@ const MailTemplate = () => {
         Mail Templates
       </h1>
 
-      {/* Form Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-10">
         <h2 className="text-2xl font-semibold mb-6">
           {editingTemplate ? "Edit Template" : "Create Template"}
@@ -140,7 +133,6 @@ const MailTemplate = () => {
             >
               {editingTemplate ? "Update Template" : "Create Template"}
             </button>
-
             {editingTemplate && (
               <button
                 type="button"
@@ -157,7 +149,6 @@ const MailTemplate = () => {
         </form>
       </div>
 
-      {/* Template List Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 overflow-x-auto">
         <h2 className="text-2xl font-semibold mb-6">Existing Templates</h2>
         {loading ? (

@@ -1,29 +1,32 @@
 import React, { useEffect, useState } from "react";
+import { CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
+
+const dummyTemplates = [
+  { _id: "t1", templateKey: "welcome", subject: "Welcome to the Drive" },
+  { _id: "t2", templateKey: "interview", subject: "Interview Schedule" },
+  { _id: "t3", templateKey: "rejection", subject: "Application Status Update" },
+];
+
+const dummyRecipients = [
+  { _id: "u1", name: "Rahul Kumar", email: "rahul@example.com", domain: "Tech" },
+  { _id: "u2", name: "Sneha Sharma", email: "sneha@example.com", domain: "Graphics" },
+  { _id: "u3", name: "Amit Patel", email: "amit@example.com", domain: "PR" },
+  { _id: "u4", name: "Priya Singh", email: "priya@example.com", domain: "Tech" },
+  { _id: "u5", name: "Rohan Das", email: "rohan@example.com", domain: "CR" },
+  { _id: "u6", name: "Anjali Verma", email: "anjali@example.com", domain: "Graphics" },
+];
 
 const BulkMail = () => {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [recipients, setRecipients] = useState([]);
   const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [sentRecipients, setSentRecipients] = useState([]);
+  const [filterDomain, setFilterDomain] = useState("All");
   const [loading, setLoading] = useState(false);
 
-  // Dummy Templates
-  const dummyTemplates = [
-    { _id: "t1", templateKey: "welcome", subject: "Welcome to the Drive" },
-    { _id: "t2", templateKey: "interview", subject: "Interview Schedule" },
-    { _id: "t3", templateKey: "rejection", subject: "Application Status Update" },
-  ];
-
-  // Dummy Recipients
-  const dummyRecipients = [
-    { _id: "u1", name: "Rahul Kumar", email: "rahul@example.com" },
-    { _id: "u2", name: "Sneha Sharma", email: "sneha@example.com" },
-    { _id: "u3", name: "Amit Patel", email: "amit@example.com" },
-    { _id: "u4", name: "Priya Singh", email: "priya@example.com" },
-  ];
-
   useEffect(() => {
-    // simulate API call delay
     setTimeout(() => {
       setTemplates(dummyTemplates);
       setRecipients(dummyRecipients);
@@ -36,17 +39,41 @@ const BulkMail = () => {
     );
   };
 
-  const handleSend = async () => {
-    if (!selectedTemplate) return alert("Please select a template");
-    if (selectedRecipients.length === 0)
-      return alert("Please select at least one recipient");
+  const handleSelectDomain = (domain) => {
+    if (domain === "All") {
+      if (selectedRecipients.length === recipients.length) {
+        setSelectedRecipients([]);
+      } else {
+        setSelectedRecipients(recipients.map((r) => r._id));
+      }
+      return;
+    }
+    const domainStudents = recipients
+      .filter((r) => r.domain === domain)
+      .map((r) => r._id);
+    setSelectedRecipients((prev) => {
+      const allSelected = domainStudents.every((id) => prev.includes(id));
+      return allSelected
+        ? prev.filter((id) => !domainStudents.includes(id))
+        : Array.from(new Set([...prev, ...domainStudents]));
+    });
+  };
 
+  const handleSend = async () => {
+    if (!selectedTemplate) {
+      toast.error("Please select a template");
+      return;
+    }
+    if (selectedRecipients.length === 0) {
+      toast.error("Please select at least one recipient");
+      return;
+    }
     try {
       setLoading(true);
-      // Simulate sending emails delay
       setTimeout(() => {
-        alert(
-          `✅ Emails sent!\nTemplate: ${selectedTemplate}\nRecipients: ${selectedRecipients.length}`
+        setSentRecipients((prev) => [...prev, ...selectedRecipients]);
+        toast.success(
+          `Emails sent. Template: ${selectedTemplate}, Recipients: ${selectedRecipients.length}`
         );
         setSelectedRecipients([]);
         setSelectedTemplate("");
@@ -54,67 +81,134 @@ const BulkMail = () => {
       }, 1000);
     } catch (err) {
       console.error(err);
-      alert("Error sending emails");
+      toast.error("Error sending emails");
       setLoading(false);
     }
   };
 
+  const filteredRecipients =
+    filterDomain === "All"
+      ? recipients
+      : [
+          ...recipients.filter((r) => r.domain === filterDomain),
+          ...recipients.filter((r) => r.domain !== filterDomain),
+        ];
+
+  const uniqueDomains = ["All", ...new Set(recipients.map((r) => r.domain))];
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-8 flex flex-col max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 border-b border-gray-300 dark:border-gray-700 pb-4">
-        Bulk Mail
-      </h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-8 flex flex-col max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Bulk Mail</h1>
 
-      {/* Template Selector */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 max-w-lg w-full">
-        <label className="block font-semibold mb-3 text-lg">
-          Select Template
-        </label>
-        <select
-          value={selectedTemplate}
-          onChange={(e) => setSelectedTemplate(e.target.value)}
-          className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
-        >
-          <option value="">-- Select Template --</option>
-          {templates.map((t) => (
-            <option key={t._id} value={t._id}>
-              {t.templateKey} - {t.subject}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="flex flex-col md:flex-row justify-between gap-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex-1">
+          <label className="block font-semibold mb-2 text-lg">
+            Select Template
+          </label>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">-- Select Template --</option>
+            {templates.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.templateKey} - {t.subject}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* Recipients List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-10 max-w-3xl w-full">
-        <h2 className="text-xl font-semibold mb-4">Select Recipients</h2>
-        <div className="max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-3 space-y-2">
-          {recipients.map((r) => (
-            <label
-              key={r._id}
-              className="flex items-center cursor-pointer select-none"
-            >
-              <input
-                type="checkbox"
-                checked={selectedRecipients.includes(r._id)}
-                onChange={() => handleRecipientToggle(r._id)}
-                className="mr-3 h-5 w-5 accent-blue-600 dark:accent-blue-500"
-              />
-              <span>
-                <span className="font-medium">{r.name}</span>{" "}
-                <span className="text-gray-600 dark:text-gray-400 text-sm">
-                  ({r.email})
-                </span>
-              </span>
-            </label>
-          ))}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 flex flex-col gap-3">
+          <h2 className="font-semibold text-lg mb-1">Filter / Select by Domain</h2>
+          <div className="flex flex-wrap gap-2">
+            {uniqueDomains.map((domain) => (
+              <button
+                key={domain}
+                onClick={() => {
+                  setFilterDomain(domain);
+                  handleSelectDomain(domain);
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  filterDomain === domain
+                    ? "bg-blue-600 text-white shadow"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+              >
+                {domain}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Send Button */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8 w-full flex-1 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Student List</h2>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {selectedRecipients.length} selected
+          </span>
+        </div>
+        <table className="w-full border-collapse text-sm md:text-base">
+          <thead>
+            <tr className="bg-gray-100 dark:bg-gray-700 text-left">
+              <th className="p-3">Select</th>
+              <th className="p-3">Name</th>
+              <th className="p-3">Email</th>
+              <th className="p-3">Domain</th>
+              <th className="p-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRecipients.map((r, idx) => {
+              const isSent = sentRecipients.includes(r._id);
+              return (
+                <tr
+                  key={r._id}
+                  className={`${
+                    isSent
+                      ? "bg-green-50 dark:bg-green-900/40"
+                      : idx % 2 === 0
+                      ? "bg-gray-50 dark:bg-gray-900/30"
+                      : "bg-white dark:bg-gray-800"
+                  } border-b border-gray-200 dark:border-gray-700`}
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRecipients.includes(r._id)}
+                      onChange={() => handleRecipientToggle(r._id)}
+                      disabled={isSent}
+                      className="h-5 w-5 accent-blue-600 dark:accent-blue-500"
+                    />
+                  </td>
+                  <td className="p-3 font-medium">{r.name}</td>
+                  <td className="p-3 text-gray-600 dark:text-gray-400">
+                    {r.email}
+                  </td>
+                  <td className="p-3">{r.domain}</td>
+                  <td className="p-3">
+                    {isSent ? (
+                      <span className="flex items-center text-green-600 dark:text-green-400 font-semibold">
+                        <CheckCircle className="h-5 w-5 mr-1" /> Sent
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Pending
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
       <button
         onClick={handleSend}
         disabled={loading}
-        className="px-6 py-3 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed max-w-xs w-full"
+        className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed max-w-xs w-full mx-auto"
       >
         {loading ? "Sending..." : "Send Bulk Email"}
       </button>

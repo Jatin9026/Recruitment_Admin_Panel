@@ -1,67 +1,70 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
-
-// Pages
+import { useAuthStore } from "./store/authStore";
+import { Toaster } from "sonner";
 import Dashboard from "./pages/dashboard/Dashboard";
 import ApplicantsList from "./pages/applicants/ApplicantsList";
-import ApplicantDetail from "./pages/applicants/ApplicantDetail";
 import CheckInPage from "./pages/attendance/CheckIn";
 import GroupsList from "./pages/groups/GroupList";
-import GroupEvaluate from "./pages/groups/GroupEvaluate";
+
 import PendingScreening from "./pages/screening/PendingScreening";
+import ScreeningEvaluate from "./pages/screening/ScreeningEvaluate";
 import DomainInterview from "./pages/interview/DomainInterview";
+import Events from "./pages/interview/Events";
+import Graphics from "./pages/interview/Graphics";
+import Cr from "./pages/interview/Cr";
+import Pr from "./pages/interview/Pr";
+import Tech from "./pages/interview/Tech";
 import ManageSlots from "./pages/slots/ManageSlots";
 import MailTemplate from "./pages/mail/MailTemplate";
 import BulkMail from "./pages/mail/BulkMail";
 import TaskList from "./pages/tasks/TaskList";
-import AuditLog from "./pages/audit/AuditLog";
-import Setting from "./pages/settings/Setting";
-import ScreeningEvaluate from "./pages/screening/ScreeningEvaluate";
+
+import LoginPage from "./pages/login/Login";
+
+// 🔹 Higher Order Component for Protected Routes
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
+    <Routes>
+      {/* Public Route */}
+      <Route path="/login" element={<LoginPage />} />
 
-        {/* Applicants */}
-        <Route path="/applicants/list" element={<ApplicantsList />} />
-        <Route path="/applicants/detail/:id" element={<ApplicantDetail />} />
+      {/* Protected Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="applicants/list" element={<ApplicantsList />} />
+        <Route path="attendance/check-in" element={<CheckInPage />} />
+        <Route path="groups/list" element={<GroupsList />} />
+        <Route path="screening" element={<PendingScreening />} />
+        <Route path="screening/evaluate/:id" element={<ScreeningEvaluate />} />
+        <Route path="interview/domain" element={<DomainInterview />} />
+        <Route path="interview/events" element={<Events />} />
+        <Route path="interview/graphics" element={<Graphics />} />
+        <Route path="interview/cr" element={<Cr />} />
+        <Route path="interview/pr" element={<Pr />} />
+        <Route path="interview/tech" element={<Tech />} />
+        <Route path="slot" element={<ManageSlots />} />
+        <Route path="mail/templates" element={<MailTemplate />} />
+        <Route path="mail/bulk" element={<BulkMail />} />
+        <Route path="tasks/list" element={<TaskList />} />
+      </Route>
 
-        {/* Attendance */}
-        <Route path="/attendance/check-in" element={<CheckInPage />} />
-
-        {/* Groups */}
-        <Route path="/groups/list" element={<GroupsList />} />
-        <Route path="/groups/evaluate/:groupId" element={<GroupEvaluate />} />
-
-        {/* Screening */}
-        <Route path="/screening" element={<PendingScreening/>}/>
-        <Route path="/screening/evaluate/:id" element={<ScreeningEvaluate />} />
-
-        {/* Domain Interview */}
-        <Route path="/interview/domain" element={<DomainInterview />} />
-
-        {/* Slots */}
-        <Route path="/slot" element={<ManageSlots />} />
-
-        {/* Mail */}
-        <Route path="/mail/templates" element={<MailTemplate />} />
-        <Route path="/mail/bulk" element={<BulkMail />} />
-
-        {/* Tasks */}
-        <Route path="/tasks/list" element={<TaskList />} />
-
-        {/* Audit */}
-        <Route path="/audit/logs" element={<AuditLog />} />
-
-        {/* Settings */}
-        <Route path="/settings" element={<Setting />} />
-
-        {/* Redirect unknown paths */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+      {/* Redirect unknown paths */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

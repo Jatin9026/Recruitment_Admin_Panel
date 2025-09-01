@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx
+
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState({});
 
   useEffect(() => {
-    // Dummy stats
     const dummyStats = {
       applicants: 245,
       presentToday: 190,
@@ -103,7 +102,6 @@ const Dashboard = () => {
   );
 };
 
-// Stat Card
 const StatCard = ({ label, value }) => (
   <Card className="shadow-md rounded-2xl bg-white hover:shadow-lg transition-shadow">
     <CardContent className="p-6 flex flex-col items-center justify-center text-center">

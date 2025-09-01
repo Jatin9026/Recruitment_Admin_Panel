@@ -3,21 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-// Placeholder for dummy data since it was not provided in the snippet
-const dummyApplicants = [
-  { id: 1, name: "Riya Sharma", email: "riya.sharma@example.com", department: "Computer Science", libraryId: "LIB2025001" },
-  { id: 2, name: "Arjun Mehta", email: "arjun.mehta@example.com", department: "Electronics", libraryId: "LIB2025002" },
-  { id: 3, name: "Priya Singh", email: "priya.singh@example.com", department: "Mechanical", libraryId: "LIB2025003" },
-  { id: 4, name: "Kabir Khan", email: "kabir.khan@example.com", department: "Civil", libraryId: "LIB2025004" },
-  { id: 5, name: "Neha Verma", email: "neha.verma@example.com", department: "Information Technology", libraryId: "LIB2025005" },
-  { id: 6, name: "Aman Gupta", email: "aman.gupta@example.com", department: "Computer Science", libraryId: "LIB2025006" },
-  { id: 7, name: "Ishita Roy", email: "ishita.roy@example.com", department: "Electronics", libraryId: "LIB2025007" },
-  { id: 8, name: "Sahil Khan", email: "sahil.khan@example.com", department: "Mechanical", libraryId: "LIB2025008" },
-  { id: 9, name: "Kritika Jain", email: "kritika.jain@example.com", department: "Civil", libraryId: "LIB2025009" },
-  { id: 10, name: "Rahul Nair", email: "rahul.nair@example.com", department: "Information Technology", libraryId: "LIB2025010" },
-  { id: 11, name: "Ananya Das", email: "ananya.das@example.com", department: "Computer Science", libraryId: "LIB2025011" },
-];
+import dummyApplicants from "../../data/dummyApplicants";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CheckIn({ role }) {
   const [query, setQuery] = useState("");
@@ -25,10 +12,8 @@ export default function CheckIn({ role }) {
   const [libraryId, setLibraryId] = useState("");
   const [results, setResults] = useState(dummyApplicants);
 
-  // Derive unique branches from the data
   const uniqueBranches = [...new Set(dummyApplicants.map((a) => a.department))];
 
-  // Search and filter logic
   function searchApplicants(e) {
     if (e) e.preventDefault();
     let filtered = [...dummyApplicants];
@@ -51,7 +36,6 @@ export default function CheckIn({ role }) {
     setResults(filtered);
   }
 
-  // Toggle branch filter
   function toggleBranch(selectedBranch) {
     if (branch === selectedBranch) {
       setBranch("");
@@ -66,10 +50,10 @@ export default function CheckIn({ role }) {
     }
   }
 
-  // Function to mark an applicant as present and remove them from the list
   function checkInAndRemoveApplicant(applicantId) {
+    const applicant = results.find((a) => a.id === applicantId);
     setResults((prev) => prev.filter((a) => a.id !== applicantId));
-    console.log(`Applicant with ID ${applicantId} has been checked in and moved to GD.`);
+    toast.success(`${applicant.name} Present`);
   }
 
   // Access control
@@ -85,6 +69,9 @@ export default function CheckIn({ role }) {
 
   return (
     <div className="space-y-6 w-full p-6">
+      {/* Toast container */}
+      <Toaster position="top-right" />
+
       {/* Search & Filter Section */}
       <Card className="w-full shadow-md border rounded-lg">
         <CardContent className="space-y-4">
@@ -164,16 +151,17 @@ export default function CheckIn({ role }) {
               <thead className="bg-gray-100 sticky top-0 shadow-sm">
                 <tr>
                   <th className="px-4 py-2 border text-left">Name</th>
-                  <th className="px-4 py-2 border text-left">Email</th>
-                  <th className="px-4 py-2 border text-left">Branch</th>
                   <th className="px-4 py-2 border text-left">Library ID</th>
+                  <th className="px-4 py-2 border text-left">Branch</th>
+                  <th className="px-4 py-2 border text-left">Year</th>
+                  <th className="px-4 py-2 border text-left">Domain</th>
                   <th className="px-4 py-2 border text-center">Attendance</th>
                 </tr>
               </thead>
               <tbody>
                 {results.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center text-gray-500 py-6">
+                    <td colSpan="6" className="text-center text-gray-500 py-6">
                       No applicants found.
                     </td>
                   </tr>
@@ -186,9 +174,10 @@ export default function CheckIn({ role }) {
                       } hover:bg-blue-50 transition`}
                     >
                       <td className="px-4 py-2 border">{a.name}</td>
-                      <td className="px-4 py-2 border">{a.email}</td>
-                      <td className="px-4 py-2 border">{a.department}</td>
                       <td className="px-4 py-2 border">{a.libraryId}</td>
+                      <td className="px-4 py-2 border">{a.department}</td>
+                      <td className="px-4 py-2 border">{a.year}</td>
+                      <td className="px-4 py-2 border">{a.assignedDomain}</td>
                       <td className="px-4 py-2 border text-center">
                         <Button
                           onClick={() => checkInAndRemoveApplicant(a.id)}

@@ -1,73 +1,72 @@
-
+// store/applicantStore.js
 import { create } from "zustand";
-import dummyApplicants from "../data/dummyApplicants";
-import dummyAudit from "../data/dummyAudit"; 
+import dummyApplicants from "../data/dummyApplicants"; // fallback until API is used
 
 const useApplicantStore = create((set, get) => ({
   applicants: dummyApplicants,
   selectedApplicant: null,
-  loading: false,
-  error: null,
+  selectedIds: [],
+  slotDate: "",
+  slotHour: "",
+
+  // Select a single applicant for detail modal
+  setSelectedApplicant: (applicant) => set({ selectedApplicant: applicant }),
+
+  // Toggle selection (max 15 rule)
+  toggleSelect: (id) =>
+    set((state) => {
+      if (state.selectedIds.includes(id)) {
+        return { selectedIds: state.selectedIds.filter((sid) => sid !== id) };
+      }
+      if (state.selectedIds.length >= 15) {
+        alert("You can select only up to 15 students (use bulk 50 instead)");
+        return {};
+      }
+      return { selectedIds: [...state.selectedIds, id] };
+    }),
+
+  // Select first 50
+  select50: () =>
+    set((state) => ({
+      selectedIds: state.applicants.slice(0, 50).map((a) => a.id),
+    })),
+
+  // Clear all
+  clearSelection: () => set({ selectedIds: [] }),
+
+  // Update slot assignment for selected applicants
+  assignSlot: () => {
+    const { slotDate, slotHour, selectedIds, applicants } = get();
+    if (!slotDate || !slotHour) {
+      alert("Please select both date and time (hour)");
+      return;
+    }
+    const slotDateTime = new Date(`${slotDate}T${slotHour}:00`);
+    const updatedApplicants = applicants.map((app) =>
+      selectedIds.includes(app.id) ? { ...app, slot: { startAt: slotDateTime } } : app
+    );
+    set({
+      applicants: updatedApplicants,
+      selectedIds: [],
+      slotDate: "",
+      slotHour: "",
+    });
+    alert("Slot assigned successfully");
+  },
+
+  // API Fetch (plug-in later)
   fetchApplicants: async () => {
     try {
-      set({ loading: true, error: null });
-      const data = dummyApplicants;
-      set({ applicants: data, loading: false });
+      const res = await fetch("/api/applicants");
+      const data = await res.json();
+      set({ applicants: data });
     } catch (err) {
-      set({ error: err.message, loading: false });
+      console.error("Failed to fetch applicants:", err);
     }
   },
 
-  addApplicant: (newApplicant) => {
-    set((state) => ({
-      applicants: [...state.applicants, newApplicant],
-    }));
-    dummyAudit.push({
-      id: dummyAudit.length + 1,
-      action: "CREATE",
-      entity: "Applicant",
-      entityId: newApplicant.id,
-      timestamp: new Date().toISOString(),
-      performedBy: "AdminUser",
-    });
-  },
-
-  updateApplicant: (id, updates) => {
-    set((state) => ({
-      applicants: state.applicants.map((a) =>
-        a.id === id ? { ...a, ...updates } : a
-      ),
-    }));
-    dummyAudit.push({
-      id: dummyAudit.length + 1,
-      action: "UPDATE",
-      entity: "Applicant",
-      entityId: id,
-      timestamp: new Date().toISOString(),
-      performedBy: "AdminUser",
-    });
-  },
-
-  deleteApplicant: (id) => {
-    set((state) => ({
-      applicants: state.applicants.filter((a) => a.id !== id),
-    }));
-    dummyAudit.push({
-      id: dummyAudit.length + 1,
-      action: "DELETE",
-      entity: "Applicant",
-      entityId: id,
-      timestamp: new Date().toISOString(),
-      performedBy: "AdminUser",
-    });
-  },
-
-  selectApplicant: (id) => {
-    const found = get().applicants.find((a) => a.id === id) || null;
-    set({ selectedApplicant: found });
-  },
-
-  clearSelection: () => set({ selectedApplicant: null }),
+  setSlotDate: (date) => set({ slotDate: date }),
+  setSlotHour: (hour) => set({ slotHour: hour }),
 }));
 
 export default useApplicantStore;
