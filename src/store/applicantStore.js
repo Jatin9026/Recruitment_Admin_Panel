@@ -1,6 +1,6 @@
-// store/applicantStore.js
+
 import { create } from "zustand";
-import dummyApplicants from "../data/dummyApplicants"; // fallback until API is used
+import dummyApplicants from "../data/dummyApplicants"; 
 
 const useApplicantStore = create((set, get) => ({
   applicants: dummyApplicants,
@@ -9,10 +9,9 @@ const useApplicantStore = create((set, get) => ({
   slotDate: "",
   slotHour: "",
 
-  // Select a single applicant for detail modal
+
   setSelectedApplicant: (applicant) => set({ selectedApplicant: applicant }),
 
-  // Toggle selection (max 15 rule)
   toggleSelect: (id) =>
     set((state) => {
       if (state.selectedIds.includes(id)) {
@@ -25,16 +24,14 @@ const useApplicantStore = create((set, get) => ({
       return { selectedIds: [...state.selectedIds, id] };
     }),
 
-  // Select first 50
+
   select50: () =>
     set((state) => ({
       selectedIds: state.applicants.slice(0, 50).map((a) => a.id),
     })),
 
-  // Clear all
-  clearSelection: () => set({ selectedIds: [] }),
 
-  // Update slot assignment for selected applicants
+  clearSelection: () => set({ selectedIds: [] }),
   assignSlot: () => {
     const { slotDate, slotHour, selectedIds, applicants } = get();
     if (!slotDate || !slotHour) {
@@ -54,7 +51,6 @@ const useApplicantStore = create((set, get) => ({
     alert("Slot assigned successfully");
   },
 
-  // API Fetch (plug-in later)
   fetchApplicants: async () => {
     try {
       const res = await fetch("/api/applicants");

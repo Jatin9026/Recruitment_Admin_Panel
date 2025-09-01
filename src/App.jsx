@@ -32,10 +32,7 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <Routes>
-      {/* Public Route */}
       <Route path="/login" element={<LoginPage />} />
-
-      {/* Protected Routes */}
       <Route
         path="/"
         element={
@@ -61,8 +58,6 @@ function App() {
         <Route path="mail/bulk" element={<BulkMail />} />
         <Route path="tasks/list" element={<TaskList />} />
       </Route>
-
-      {/* Redirect unknown paths */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

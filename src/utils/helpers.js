@@ -8,7 +8,6 @@ export const formatDate = (date) => {
       year: "numeric",
     });
   };
-
   export const truncateText = (text, maxLength = 50) => {
     if (!text) return "";
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
@@ -34,11 +33,11 @@ export const formatDate = (date) => {
   export const mapStatus = (status) => {
     switch (status) {
       case "pending":
-        return "Pending ⏳";
+        return "Pending ";
       case "approved":
-        return "Approved ✅";
+        return "Approved ";
       case "rejected":
-        return "Rejected ❌";
+        return "Rejected ";
       default:
         return "Unknown";
     }

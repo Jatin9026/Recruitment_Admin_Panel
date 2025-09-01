@@ -70,18 +70,18 @@ const MailTemplate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-8 flex flex-col max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 border-b border-gray-300 dark:border-gray-700 pb-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 sm:p-6 lg:p-8 flex flex-col max-w-7xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 border-b border-gray-300 dark:border-gray-700 pb-3">
         Mail Templates
       </h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-10">
-        <h2 className="text-2xl font-semibold mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-10">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
           {editingTemplate ? "Edit Template" : "Create Template"}
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 max-w-3xl">
           <div>
-            <label className="block font-medium mb-2" htmlFor="templateKey">
+            <label className="block font-medium mb-2 text-sm sm:text-base" htmlFor="templateKey">
               Template Key
             </label>
             <input
@@ -90,13 +90,13 @@ const MailTemplate = () => {
               name="templateKey"
               value={form.templateKey}
               onChange={handleChange}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 sm:p-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
               required
             />
           </div>
 
           <div>
-            <label className="block font-medium mb-2" htmlFor="subject">
+            <label className="block font-medium mb-2 text-sm sm:text-base" htmlFor="subject">
               Subject
             </label>
             <input
@@ -105,13 +105,13 @@ const MailTemplate = () => {
               name="subject"
               value={form.subject}
               onChange={handleChange}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 sm:p-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
               required
             />
           </div>
 
           <div>
-            <label className="block font-medium mb-2" htmlFor="body">
+            <label className="block font-medium mb-2 text-sm sm:text-base" htmlFor="body">
               Body
             </label>
             <textarea
@@ -119,17 +119,17 @@ const MailTemplate = () => {
               name="body"
               value={form.body}
               onChange={handleChange}
-              rows={6}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-base resize-y focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
+              rows={4}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 sm:p-3 text-sm sm:text-base resize-y focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white sm:rows-6"
               required
             />
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {editingTemplate ? "Update Template" : "Create Template"}
             </button>
@@ -140,7 +140,7 @@ const MailTemplate = () => {
                   setEditingTemplate(null);
                   setForm({ templateKey: "", subject: "", body: "" });
                 }}
-                className="px-6 py-3 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-4 focus:ring-gray-300"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition focus:outline-none focus:ring-4 focus:ring-gray-300 text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -149,51 +149,82 @@ const MailTemplate = () => {
         </form>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 overflow-x-auto">
-        <h2 className="text-2xl font-semibold mb-6">Existing Templates</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Existing Templates</h2>
         {loading ? (
           <p className="text-gray-600 dark:text-gray-300">Loading...</p>
         ) : templates.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400">No templates found.</p>
         ) : (
-          <table className="w-full table-auto border border-gray-300 dark:border-gray-600 rounded-lg">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700">
-                <th className="border px-4 py-2 text-left">Key</th>
-                <th className="border px-4 py-2 text-left">Subject</th>
-                <th className="border px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full table-auto border border-gray-300 dark:border-gray-600 rounded-lg">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="border px-4 py-2 text-left">Key</th>
+                    <th className="border px-4 py-2 text-left">Subject</th>
+                    <th className="border px-4 py-2 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {templates.map((template) => (
+                    <tr
+                      key={template._id}
+                      className="even:bg-gray-50 dark:even:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 transition"
+                    >
+                      <td className="border px-4 py-2">{template.templateKey}</td>
+                      <td className="border px-4 py-2">{template.subject}</td>
+                      <td className="border px-4 py-2 text-center space-x-2">
+                        <button
+                          onClick={() => handleEdit(template)}
+                          className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(template._id)}
+                          className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden space-y-4">
               {templates.map((template) => (
-                <tr
+                <div
                   key={template._id}
-                  className="even:bg-gray-50 dark:even:bg-gray-700 hover:bg-blue-50 dark:hover:bg-gray-600 transition"
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
                 >
-                  <td className="border px-4 py-2">{template.templateKey}</td>
-                  <td className="border px-4 py-2">{template.subject}</td>
-                  <td className="border px-4 py-2 text-center space-x-2">
+                  <div className="mb-3">
+                    <h3 className="font-semibold text-base mb-1">{template.templateKey}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm">{template.subject}</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => handleEdit(template)}
-                      className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition"
+                      className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition text-sm"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(template._id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm"
                     >
                       Delete
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>
   );
 };
-
 export default MailTemplate;

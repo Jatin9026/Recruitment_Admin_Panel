@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-// Dummy data (simulate DB records)
 const dummyTasks = [
   {
     _id: "1",
@@ -54,7 +53,6 @@ const TaskList = () => {
     fetchTasks();
   }, []);
 
-  // Filter tasks
   const filteredTasks =
     filter === "all"
       ? tasks
@@ -62,24 +60,36 @@ const TaskList = () => {
           filter === "completed" ? t.submittedAt : !t.submittedAt
         );
 
-  // Check if deadline is crossed
   const isOverdue = (deadline, submittedAt) => {
     if (submittedAt) return false;
     return new Date(deadline) < new Date();
   };
 
-  return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Student Task Submissions</h1>
+  const getStatusInfo = (task) => {
+    if (task.submittedAt) {
+      return { text: "Completed", color: "text-green-600", bgColor: "bg-green-50" };
+    } else if (isOverdue(task.deadline, task.submittedAt)) {
+      return { text: "Overdue", color: "text-red-600", bgColor: "bg-red-50" };
+    } else {
+      return { text: "Pending", color: "text-yellow-600", bgColor: "bg-yellow-50" };
+    }
+  };
 
-      {/* Filter */}
-      <div className="mb-4 flex gap-4">
+  return (
+    <div className="p-3 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">
+        Student Task Submissions
+      </h1>
+
+      <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
         {["all", "pending", "completed"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded capitalize ${
-              filter === f ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-3 py-2 rounded capitalize text-sm sm:text-base transition-colors ${
+              filter === f 
+                ? "bg-blue-600 text-white shadow-md" 
+                : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
             }`}
           >
             {f}
@@ -87,82 +97,139 @@ const TaskList = () => {
         ))}
       </div>
 
-      {/* Task Table */}
-      <div className="bg-white shadow rounded overflow-x-auto">
+      <div className="hidden md:block bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-100 dark:bg-gray-700">
             <tr>
-              <th className="p-2 border">Applicant ID</th>
-              <th className="p-2 border">Domain</th>
-              <th className="p-2 border">Deadline</th>
-              <th className="p-2 border">Submission</th>
-              <th className="p-2 border">File</th>
-              <th className="p-2 border">Status</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">Applicant ID</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">Domain</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">Deadline</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">Submission</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">File</th>
+              <th className="p-3 border-b border-gray-300 dark:border-gray-600 text-sm font-semibold">Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" className="p-4 text-center">
+                <td colSpan="6" className="p-8 text-center text-gray-600 dark:text-gray-400">
                   Loading tasks...
                 </td>
               </tr>
             ) : filteredTasks.length === 0 ? (
               <tr>
-                <td colSpan="6" className="p-4 text-center">
+                <td colSpan="6" className="p-8 text-center text-gray-600 dark:text-gray-400">
                   No tasks found.
                 </td>
               </tr>
             ) : (
-              filteredTasks.map((task) => (
-                <tr
-                  key={task._id}
-                  className={
-                    task.submittedAt
-                      ? "bg-green-50"
-                      : isOverdue(task.deadline, task.submittedAt)
-                      ? "bg-red-50"
-                      : ""
-                  }
-                >
-                  <td className="p-2 border">{task.applicantId}</td>
-                  <td className="p-2 border">{task.domain}</td>
-                  <td className="p-2 border">
-                    {new Date(task.deadline).toLocaleString()}
-                  </td>
-                  <td className="p-2 border">
-                    {task.submittedAt
-                      ? new Date(task.submittedAt).toLocaleString()
-                      : "Not Submitted"}
-                  </td>
-                  <td className="p-2 border">
-                    {task.fileUrl ? (
+              filteredTasks.map((task) => {
+                const status = getStatusInfo(task);
+                return (
+                  <tr
+                    key={task._id}
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${status.bgColor} dark:${status.bgColor.replace('bg-', 'bg-opacity-20 bg-')}`}
+                  >
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm">{task.applicantId}</td>
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm">{task.domain}</td>
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm">
+                      {new Date(task.deadline).toLocaleString()}
+                    </td>
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm">
+                      {task.submittedAt
+                        ? new Date(task.submittedAt).toLocaleString()
+                        : "Not Submitted"}
+                    </td>
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm">
+                      {task.fileUrl ? (
+                        <a
+                          href={task.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          View File
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm font-medium">
+                      <span className={status.color}>{status.text}</span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400">Loading tasks...</p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400">No tasks found.</p>
+          </div>
+        ) : (
+          filteredTasks.map((task) => {
+            const status = getStatusInfo(task);
+            return (
+              <div
+                key={task._id}
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 ${
+                  task.submittedAt
+                    ? "border-green-500"
+                    : isOverdue(task.deadline, task.submittedAt)
+                    ? "border-red-500"
+                    : "border-yellow-500"
+                }`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-lg">{task.applicantId}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{task.domain}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${status.color} ${status.bgColor}`}>
+                    {status.text}
+                  </span>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Deadline:</span>
+                    <span className="font-medium">{new Date(task.deadline).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Submission:</span>
+                    <span className="font-medium">
+                      {task.submittedAt
+                        ? new Date(task.submittedAt).toLocaleDateString()
+                        : "Not Submitted"}
+                    </span>
+                  </div>
+                  
+                  {task.fileUrl && (
+                    <div className="pt-2">
                       <a
                         href={task.fileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-600 underline"
+                        className="inline-block bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition-colors"
                       >
                         View File
                       </a>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="p-2 border font-medium">
-                    {task.submittedAt ? (
-                      <span className="text-green-600">Completed</span>
-                    ) : isOverdue(task.deadline, task.submittedAt) ? (
-                      <span className="text-red-600">Overdue</span>
-                    ) : (
-                      <span className="text-yellow-600">Pending</span>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

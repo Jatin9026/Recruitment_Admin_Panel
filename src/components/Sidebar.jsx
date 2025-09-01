@@ -22,8 +22,6 @@ const menuItems = [
   { path: "/attendance/check-in", label: "Attendance", icon: ClipboardList },
   { path: "/groups/list", label: "Group Discussion", icon: UsersRound },
   { path: "/screening", label: "Screening", icon: FileText },
-
-  // Dropdown Item for Interviews
   {
     label: "Interviews",
     icon: CheckCircle,
@@ -35,7 +33,6 @@ const menuItems = [
       { path: "/interview/events", label: "Events" },
     ],
   },
-
   { path: "/mail/templates", label: "Mail Templates", icon: Mail },
   { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox },
   { path: "/tasks/list", label: "Tasks", icon: ClipboardList },
@@ -44,12 +41,16 @@ const menuItems = [
 export default function Sidebar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState({});
+
+  const toggleDropdown = (label) => {
+    setDropdownOpen((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   return (
     <>
       <button
-        className="md:hidden fixed  top-4 left-4 z-50 bg-white p-2 rounded-md shadow border hover:bg-gray-100 transition"
+        className="md:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-md shadow border hover:bg-gray-100 transition"
         onClick={() => setOpen(!open)}
         aria-label="Toggle Sidebar"
       >
@@ -57,12 +58,12 @@ export default function Sidebar() {
       </button>
 
       <aside
-  className={`fixed top-14 left-0 h-[calc(100vh-3.5rem)] w-64 
-    bg-white dark:bg-gray-900 shadow-md border-r 
-    flex flex-col z-40 transition-transform duration-300
-    ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-  `}
->
+        className={`fixed top-14 left-0 h-[calc(100vh-3.5rem)] w-64 
+          bg-white dark:bg-gray-900 shadow-md border-r 
+          flex flex-col z-40 transition-transform duration-300
+          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
         <nav className="flex-1 overflow-y-auto scrollbar-hide p-3">
           <ul className="space-y-1">
             {menuItems.map(({ path, label, icon: Icon, children }) => {
@@ -72,14 +73,15 @@ export default function Sidebar() {
                   : path && location.pathname.startsWith(path);
 
               if (children) {
+                const isDropdownOpen = !!dropdownOpen[label];
                 return (
                   <li key={label}>
                     <button
-                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      onClick={() => toggleDropdown(label)}
                       className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors
                         hover:bg-gray-100 dark:hover:bg-gray-700
                         text-gray-700 dark:text-gray-300
-                        ${dropdownOpen ? "bg-gray-200 dark:bg-gray-700 font-semibold" : ""}
+                        ${isDropdownOpen ? "bg-gray-200 dark:bg-gray-700 font-semibold" : ""}
                       `}
                     >
                       <span className="flex items-center gap-3">
@@ -88,10 +90,10 @@ export default function Sidebar() {
                       </span>
                       <ChevronDown
                         size={16}
-                        className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                        className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
                       />
                     </button>
-                    {dropdownOpen && (
+                    {isDropdownOpen && (
                       <ul className="ml-6 mt-1 space-y-1">
                         {children.map((child) => (
                           <li key={child.path}>
@@ -141,14 +143,8 @@ export default function Sidebar() {
 
       <style>
         {`
-          /* Hide scrollbar but keep scroll functionality */
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-          .scrollbar-hide {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-          }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}
       </style>
     </>

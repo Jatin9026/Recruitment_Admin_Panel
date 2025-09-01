@@ -56,32 +56,28 @@ export default function CheckIn({ role }) {
     toast.success(`${applicant.name} Present`);
   }
 
-  // Access control
   if (role < 1) {
     return (
-      <Card className="max-w-lg mx-auto mt-12">
-        <CardContent>
-          <p className="text-red-600">Access Denied: Members or higher only.</p>
+      <Card className="max-w-lg mx-auto mt-12 mx-4">
+        <CardContent className="p-4">
+          <p className="text-red-600 text-center">Access Denied: Members or higher only.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6 w-full p-6">
-      {/* Toast container */}
+    <div className="space-y-4 lg:space-y-6 w-full p-3 sm:p-4 lg:p-6">
       <Toaster position="top-right" />
 
-      {/* Search & Filter Section */}
       <Card className="w-full shadow-md border rounded-lg">
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 lg:p-6">
           <div className="border-b pb-3">
-            <h2 className="text-xl font-bold">Check-In Applicants</h2>
+            <h2 className="text-lg sm:text-xl font-bold">Check-In Applicants</h2>
           </div>
 
-          {/* Search Form */}
           <form
-            className="grid grid-cols-1 md:grid-cols-3 gap-3"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
             onSubmit={searchApplicants}
           >
             <Input
@@ -89,29 +85,30 @@ export default function CheckIn({ role }) {
               placeholder="Search by name..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              className="text-sm sm:text-base"
             />
             <Input
               type="text"
               placeholder="Search by Library ID..."
               value={libraryId}
               onChange={(e) => setLibraryId(e.target.value)}
+              className="text-sm sm:text-base"
             />
             <Button
               type="submit"
               size="sm"
-              className="bg-blue-600 hover:bg-blue-800 w-full md:w-auto"
+              className="bg-blue-600 hover:bg-blue-800 w-full sm:col-span-2 lg:col-span-1 text-sm sm:text-base h-9 sm:h-10"
             >
               Search
             </Button>
           </form>
 
-          {/* Branch Filters */}
           <div className="flex flex-wrap gap-2 pt-2">
             {uniqueBranches.map((b) => (
               <Badge
                 key={b}
                 onClick={() => toggleBranch(b)}
-                className={`cursor-pointer px-3 py-1 rounded-full transition ${
+                className={`cursor-pointer px-2 sm:px-3 py-1 rounded-full transition text-xs sm:text-sm min-h-[32px] flex items-center ${
                   branch === b
                     ? "bg-blue-600 text-white"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -128,7 +125,7 @@ export default function CheckIn({ role }) {
                   setBranch("");
                   setResults(dummyApplicants);
                 }}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8 px-2 sm:px-3"
               >
                 Clear Filter
               </Button>
@@ -137,61 +134,96 @@ export default function CheckIn({ role }) {
         </CardContent>
       </Card>
 
-      {/* Applicants Table Section */}
       <Card className="w-full shadow-md border rounded-lg">
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">Applicants</h3>
-            <span className="text-sm text-gray-500">
+        <CardContent className="p-2 sm:p-4 lg:p-6">
+          <div className="flex items-center justify-between mb-4 px-2 sm:px-0">
+            <h3 className="font-semibold text-base sm:text-lg">Applicants</h3>
+            <span className="text-xs sm:text-sm text-gray-500">
               Total: {results.length}
             </span>
           </div>
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto rounded-md border">
-            <table className="min-w-full text-sm border-collapse">
-              <thead className="bg-gray-100 sticky top-0 shadow-sm">
-                <tr>
-                  <th className="px-4 py-2 border text-left">Name</th>
-                  <th className="px-4 py-2 border text-left">Library ID</th>
-                  <th className="px-4 py-2 border text-left">Branch</th>
-                  <th className="px-4 py-2 border text-left">Year</th>
-                  <th className="px-4 py-2 border text-left">Domain</th>
-                  <th className="px-4 py-2 border text-center">Attendance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.length === 0 ? (
+          
+          <div className="hidden sm:block">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto rounded-md border">
+              <table className="min-w-full text-sm border-collapse">
+                <thead className="bg-gray-100 sticky top-0 shadow-sm">
                   <tr>
-                    <td colSpan="6" className="text-center text-gray-500 py-6">
-                      No applicants found.
-                    </td>
+                    <th className="px-4 py-2 border text-left">Name</th>
+                    <th className="px-4 py-2 border text-left">Library ID</th>
+                    <th className="px-4 py-2 border text-left">Branch</th>
+                    <th className="px-4 py-2 border text-left">Year</th>
+                    <th className="px-4 py-2 border text-left">Domain</th>
+                    <th className="px-4 py-2 border text-center">Attendance</th>
                   </tr>
-                ) : (
-                  results.map((a, idx) => (
-                    <tr
-                      key={a.id}
-                      className={`${
-                        idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      } hover:bg-blue-50 transition`}
-                    >
-                      <td className="px-4 py-2 border">{a.name}</td>
-                      <td className="px-4 py-2 border">{a.libraryId}</td>
-                      <td className="px-4 py-2 border">{a.department}</td>
-                      <td className="px-4 py-2 border">{a.year}</td>
-                      <td className="px-4 py-2 border">{a.assignedDomain}</td>
-                      <td className="px-4 py-2 border text-center">
-                        <Button
-                          onClick={() => checkInAndRemoveApplicant(a.id)}
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-800 text-white w-28"
-                        >
-                          Mark Present
-                        </Button>
+                </thead>
+                <tbody>
+                  {results.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center text-gray-500 py-6">
+                        No applicants found.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    results.map((a, idx) => (
+                      <tr
+                        key={a.id}
+                        className={`${
+                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } hover:bg-blue-50 transition`}
+                      >
+                        <td className="px-4 py-2 border">{a.name}</td>
+                        <td className="px-4 py-2 border">{a.libraryId}</td>
+                        <td className="px-4 py-2 border">{a.department}</td>
+                        <td className="px-4 py-2 border">{a.year}</td>
+                        <td className="px-4 py-2 border">{a.assignedDomain}</td>
+                        <td className="px-4 py-2 border text-center">
+                          <Button
+                            onClick={() => checkInAndRemoveApplicant(a.id)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-800 text-white w-24 lg:w-28 text-xs lg:text-sm"
+                          >
+                            Mark Present
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="sm:hidden space-y-3">
+            {results.length === 0 ? (
+              <div className="text-center text-gray-500 py-6">
+                No applicants found.
+              </div>
+            ) : (
+              results.map((a) => (
+                <Card key={a.id} className="border border-gray-200">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1 flex-1">
+                        <h4 className="font-medium text-sm">{a.name}</h4>
+                        <p className="text-xs text-gray-600">ID: {a.libraryId}</p>
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                          <span className="bg-gray-100 px-2 py-1 rounded">{a.department}</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded">Year {a.year}</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded">{a.assignedDomain}</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => checkInAndRemoveApplicant(a.id)}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-800 text-white text-xs px-3 py-2 ml-2"
+                      >
+                        Present
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

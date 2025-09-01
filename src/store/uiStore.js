@@ -8,13 +8,6 @@ const useUIStore = create((set) => ({
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
 
-  theme: "light",
-  toggleTheme: () =>
-    set((state) => ({
-      theme: state.theme === "light" ? "dark" : "light",
-    })),
-
-
   activeModal: null, 
   openModal: (modalName) => set({ activeModal: modalName }),
   closeModal: () => set({ activeModal: null }),

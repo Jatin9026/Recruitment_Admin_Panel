@@ -5,7 +5,7 @@ import { useAuthStore } from "../../store/authStore";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("GDProctor"); // default role
+  const [role, setRole] = useState("GDProctor"); 
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
 
@@ -14,7 +14,7 @@ export default function LoginPage() {
     if (email && password && role) {
       login({
         id: "u1",
-        name: "Admin User", // name can be dynamic from backend later
+        name: "Admin User", 
         email,
         role,
       });
