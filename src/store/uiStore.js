@@ -6,8 +6,6 @@ const useUIStore = create((set) => ({
   isSidebarOpen: true,
   toggleSidebar: () =>
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
-
-
   activeModal: null, 
   openModal: (modalName) => set({ activeModal: modalName }),
   closeModal: () => set({ activeModal: null }),

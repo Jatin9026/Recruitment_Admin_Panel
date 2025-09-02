@@ -7,9 +7,7 @@ export default function CheckIn({ role }) {
   const [branch, setBranch] = useState("");
   const [libraryId, setLibraryId] = useState("");
   const [results, setResults] = useState(dummyApplicants);
-
   const uniqueBranches = [...new Set(dummyApplicants.map((a) => a.department))];
-
   function searchApplicants(e) {
     if (e) e.preventDefault();
     let filtered = [...dummyApplicants];

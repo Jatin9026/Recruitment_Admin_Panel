@@ -7,7 +7,7 @@ export default function ApplicantRow({ applicant, onView, onSelect, isSelected, 
         <input
           type="checkbox"
           checked={isSelected}
-          disabled={disableCheckbox}
+          disabled={disableCheckbox} // disable already assigned students
           onChange={() => onSelect(applicant.id)}
           className="w-4 h-4 accent-blue-600 cursor-pointer"
         />

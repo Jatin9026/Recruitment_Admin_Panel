@@ -235,7 +235,6 @@ export default function ApplicantList() {
                       View
                     </button>
                   </div>
-                  
                   <div className="space-y-2 text-xs text-gray-600">
                     <div className="flex justify-between">
                       <span>Email:</span>

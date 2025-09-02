@@ -1,6 +1,7 @@
 {
   "name": "package.json",
   "private": true,
+  "proxy": "https://rec-backend-z2qa.onrender.com",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
