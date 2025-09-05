@@ -1,38 +1,131 @@
-import React from "react";
+import { create } from "zustand";
 
-export default function ApplicantRow({ applicant, onView, onSelect, isSelected, disableCheckbox }) {
-  return (
-    <tr className="border-b last:border-none odd:bg-gray-50 hover:bg-blue-50 transition-colors">
-      <td className="px-2 py-2 text-center">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          disabled={disableCheckbox} // disable already assigned students
-          onChange={() => onSelect(applicant.id)}
-          className="w-4 h-4 accent-blue-600 cursor-pointer"
-        />
-      </td>
-      <td className="px-2 py-2 font-medium">{applicant.name || "—"}</td>
-      <td className="px-2 py-2 truncate max-w-[120px]">{applicant.email || "—"}</td>
-      <td className="px-2 py-2">{applicant.department || "—"}</td>
-      <td className="px-2 py-2">{applicant.libraryId || "—"}</td>
-      <td className="px-2 py-2">
-        {applicant.slot?.startAt ? (
-          <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-medium">
-            {new Date(applicant.slot.startAt).toLocaleString()}
-          </span>
-        ) : (
-          <span className="text-gray-400 text-sm">Not Assigned</span>
-        )}
-      </td>
-      <td className="px-2 py-2 text-right flex gap-2 justify-end">
-        <button
-          onClick={() => onView(applicant)}
-          className="text-blue-600 hover:text-blue-800 font-semibold text-sm"
-        >
-          View
-        </button>
-      </td>
-    </tr>
-  );
-}
+const useApplicantStore = create((set, get) => ({
+  applicants: [],
+  selectedApplicant: null,
+  selectedIds: [],
+  slotDate: "",
+  slotHour: "",
+  endTime: "",
+  roundDuration: "",
+  batchSize: "",
+
+  setSelectedApplicant: (applicant) => set({ selectedApplicant: applicant }),
+
+  toggleSelect: (id) =>
+    set((state) => {
+      if (state.selectedIds.includes(id)) {
+        return { selectedIds: state.selectedIds.filter((sid) => sid !== id) };
+      }
+      if (state.selectedIds.length >= 15) {
+        alert("You can select only up to 15 students (use bulk 50 instead)");
+        return {};
+      }
+      return { selectedIds: [...state.selectedIds, id] };
+    }),
+
+  select50: () =>
+    set((state) => ({
+      selectedIds: state.applicants.slice(0, 50).map((a) => a.id),
+    })),
+
+  clearSelection: () => set({ selectedIds: [] }),
+
+  assignSlot: async () => {
+    const { slotDate, slotHour, endTime, roundDuration, batchSize, selectedIds, applicants } = get();
+
+    if (!slotDate || !slotHour || !endTime || !roundDuration || !batchSize) {
+      alert("Please fill all slot fields (date, start, end, duration, batch size)");
+      return;
+    }
+
+    const selectedApplicants = applicants.filter((a) => selectedIds.includes(a.id));
+    const emails = selectedApplicants.map((a) => a.email);
+
+    const payload = {
+      emails,
+      batchSize: Number(batchSize),
+      startDate: slotDate,
+      startTime: slotHour,
+      endTime,
+      roundDuration: Number(roundDuration),
+    };
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch("https://rec-backend-z2qa.onrender.com/api/users/bulk/create-rounds", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(`Failed with status ${res.status}`);
+      const data = await res.json();
+
+      // update local state
+      const updatedApplicants = applicants.map((app) =>
+        selectedIds.includes(app.id)
+          ? { ...app, slot: { startAt: `${slotDate}T${slotHour}:00` } }
+          : app
+      );
+
+      set({
+        applicants: updatedApplicants,
+        selectedIds: [],
+        slotDate: "",
+        slotHour: "",
+        endTime: "",
+        roundDuration: "",
+        batchSize: "",
+      });
+
+      alert("Slots assigned successfully!");
+    } catch (err) {
+      console.error("Failed to assign slot:", err);
+      alert("Failed to assign slot. Check console.");
+    }
+  },
+
+  fetchApplicants: async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch("https://rec-backend-z2qa.onrender.com/api/users/get", {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+      });
+      if (!res.ok) throw new Error(`Failed with status ${res.status}`);
+      const data = await res.json();
+
+      const mapped = data.map((u) => ({
+        id: u._id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        year: u.year,
+        libraryId: u.lib_id,
+        department: u.branch,
+        group: u.groupNumber,
+        status: "Pending",
+        appliedAt: u.createdAt || new Date().toISOString(),
+        slot: null,
+      }));
+
+      set({ applicants: mapped });
+    } catch (err) {
+      console.error("Failed to fetch applicants:", err);
+    }
+  },
+
+  setSlotDate: (date) => set({ slotDate: date }),
+  setSlotHour: (hour) => set({ slotHour: hour }),
+  setEndTime: (end) => set({ endTime: end }),
+  setRoundDuration: (dur) => set({ roundDuration: dur }),
+  setBatchSize: (size) => set({ batchSize: size }),
+}));
+
+export default useApplicantStore;

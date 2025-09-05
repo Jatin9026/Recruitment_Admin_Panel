@@ -49,7 +49,6 @@ export default function CheckIn({ role }) {
     setResults((prev) => prev.filter((a) => a.id !== applicantId));
     toast.success(`${applicant.name} Present`);
   }
-
   if (role < 1) {
     return (
       <div className="max-w-lg mx-auto mt-12 mx-4 bg-white rounded-lg border border-gray-200 shadow-sm">
