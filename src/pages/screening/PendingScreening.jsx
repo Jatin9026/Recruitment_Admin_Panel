@@ -62,6 +62,7 @@ const PendingScreening = () => {
     } finally {
       setRefreshing(false);
     }
+    setFilterStatus("pending");
   };
 
   useEffect(() => {
@@ -69,6 +70,7 @@ const PendingScreening = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+    setFilterStatus("pending");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -130,7 +132,6 @@ const PendingScreening = () => {
     });
     
     setFilteredApplicants(filtered);
-    setFilterStatus("pending");
   }, [applicants, searchTerm, filterDepartment, filterYear, filterStatus]);
 
 
@@ -559,6 +560,12 @@ const PendingScreening = () => {
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="text-sm text-gray-500 mb-2">Domain Preferences</div>
                         <div className="flex flex-wrap gap-2">
+                          {/* {applicant.domains && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                              <Target className="w-3 h-3 mr-1" />
+                              Domains: {applicant.domains.join(", ")}
+                            </span>
+                          )} */}
                           {applicant.domainPrefOne && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                               <Target className="w-3 h-3 mr-1" />
