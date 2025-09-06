@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const dummyApplicantsData = [
   {
@@ -25,9 +26,24 @@ const dummySlots = [
 ];
 
 const ManageSlots = ({ role }) => {
+  const location = useLocation();
   const [applicants, setApplicants] = useState(dummyApplicantsData);
   const [expandedSlot, setExpandedSlot] = useState(null);
   const [assignMessage, setAssignMessage] = useState("");
+
+  useEffect(() => {
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Additional scroll to top after component mounts
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 100);
+  }, [location.pathname]);
 
   const handleAssign = (applicantId, slotId) => {
     const slot = dummySlots.find((s) => s.id === parseInt(slotId));

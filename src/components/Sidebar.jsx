@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
+import { ROLES, ROUTE_PERMISSIONS } from "../utils/rolePermissions";
 import {
   LayoutDashboard,
   Users,
@@ -14,18 +16,28 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
+  UserPlus,
 } from "lucide-react";
+
 const menuItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["SuperAdmin", "Admin", "GdProctor"] },
-  { path: "/slot", label: "Slots", icon: Clock, roles: ["SuperAdmin"] },
-  { path: "/applicants/list", label: "Applicants", icon: Users, roles: ["SuperAdmin", "HR"] },
-  { path: "/attendance/check-in", label: "Attendance", icon: ClipboardList, roles: ["SuperAdmin", "Admin"] },
-  { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ["SuperAdmin", "HR"] },
-  { path: "/screening", label: "Screening", icon: FileText, roles: ["SuperAdmin"] },
+  { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
+  // {
+  //   label: "Slots",
+  //   icon: Clock,
+  //   roles: ROUTE_PERMISSIONS.slots,
+  //   children: [
+  //     { path: "/slot", label: "Manage Slots" },
+  //   ],
+  // },
+  { path: "/applicants/list", label: "Applicants", icon: Users, roles: ROUTE_PERMISSIONS.applicants },
+  // { path: "/attendance/check-in", label: "Attendance", icon: ClipboardList, roles: ROUTE_PERMISSIONS.attendance },
+  { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
+  { path: "/screening", label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },
   {
     label: "Interviews",
     icon: CheckCircle,
-    roles: ["SuperAdmin", "HR"],
+    roles: ROUTE_PERMISSIONS.interviews,
     children: [
       { path: "/interview/tech", label: "Tech" },
       { path: "/interview/graphics", label: "Graphics" },
@@ -34,123 +46,283 @@ const menuItems = [
       { path: "/interview/events", label: "Events" },
     ],
   },
-  { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ["SuperAdmin"] },
-  { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ["SuperAdmin"] },
-  { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ["SuperAdmin", "Admin"] },
+  { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
+  { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
+  { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
+  { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const { user } = useAuthStore();
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
   const [dropdownOpen, setDropdownOpen] = useState({});
 
+  const toggleCollapse = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    localStorage.setItem('sidebarCollapsed', newCollapsed.toString());
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'sidebarCollapsed',
+      newValue: newCollapsed.toString()
+    }));
+  };
+
   const toggleDropdown = (label) => {
-    setDropdownOpen((prev) => ({ ...prev, [label]: !prev[label] }));
+    // If sidebar is collapsed and we're clicking a dropdown, expand first
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      localStorage.setItem('sidebarCollapsed', 'false');
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'sidebarCollapsed',
+        newValue: 'false'
+      }));
+      // Open the dropdown after expanding
+      setTimeout(() => {
+        setDropdownOpen((prev) => ({ ...prev, [label]: true }));
+      }, 100);
+    } else {
+      setDropdownOpen((prev) => ({ ...prev, [label]: !prev[label] }));
+    }
+  };
+
+  const handleMenuClick = () => {
+    // Collapse sidebar when any menu item is clicked
+    if (!isCollapsed) {
+      setIsCollapsed(true);
+      localStorage.setItem('sidebarCollapsed', 'true');
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'sidebarCollapsed',
+        newValue: 'true'
+      }));
+    }
+    // Close mobile sidebar if open
+    if (isOpen) {
+      setIsOpen(false);
+    }
+  };
+
+  const userHasAccess = (roles) => {
+    if (!user?.role) return false;
+    return roles.includes(user.role);
+  };
+
+  const renderMenuItem = (item) => {
+    if (!userHasAccess(item.roles)) return null;
+
+    const isActive = location.pathname === item.path;
+    const hasChildren = item.children && item.children.length > 0;
+    const isDropdownOpen = dropdownOpen[item.label];
+
+    if (hasChildren) {
+      return (
+        <div key={item.label} className={isCollapsed ? "mb-3" : "mb-2"}>
+          <button
+            onClick={() => toggleDropdown(item.label)}
+            className={`w-full flex items-center transition-all duration-200 ${
+              isCollapsed 
+                ? 'justify-center p-3 rounded-xl hover:bg-gray-100 group' 
+                : `px-4 py-3 rounded-xl ${
+                    isDropdownOpen 
+                      ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' 
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }`
+            } text-sm font-medium`}
+            title={isCollapsed ? `${item.label} - Click to expand` : ''}
+          >
+            <item.icon className={`w-5 h-5 flex-shrink-0 transition-colors ${
+              isCollapsed 
+                ? 'text-gray-500 group-hover:text-gray-700' 
+                : 'mr-3'
+            }`} />
+            {!isCollapsed && (
+              <>
+                <span className="flex-1 text-left">{item.label}</span>
+                <div className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-0' : '-rotate-90'}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </>
+            )}
+          </button>
+          {!isCollapsed && isDropdownOpen && (
+            <div className="ml-8 mt-2 space-y-1">
+              {item.children.map((child) => (
+                <Link
+                  key={child.path}
+                  to={child.path}
+                  onClick={handleMenuClick}
+                  className={`block px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
+                    location.pathname === child.path
+                      ? 'bg-blue-100 text-blue-700 font-medium shadow-sm border-l-2 border-blue-500'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-200'
+                  }`}
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        onClick={handleMenuClick}
+        className={`flex items-center transition-all duration-200 group ${
+          isCollapsed 
+            ? `justify-center p-3 mb-3 rounded-xl hover:bg-gray-100 ${
+                isActive ? 'bg-blue-100 shadow-md' : ''
+              }` 
+            : `px-4 py-3 mb-2 rounded-xl ${
+                isActive 
+                  ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200' 
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm'
+              }`
+        } text-sm font-medium`}
+        title={isCollapsed ? item.label : ''}
+      >
+        <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-200 ${
+          isCollapsed 
+            ? `${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}` 
+            : `mr-3 ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}`
+        }`} />
+        {!isCollapsed && <span>{item.label}</span>}
+        {isActive && !isCollapsed && (
+          <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
+        )}
+        {isActive && isCollapsed && (
+          <div className="absolute right-1 w-1 h-8 bg-blue-500 rounded-full"></div>
+        )}
+      </Link>
+    );
   };
 
   return (
     <>
+      {/* Mobile Toggle Button */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-md shadow border hover:bg-gray-100 transition"
-        onClick={() => setOpen(!open)}
-        aria-label="Toggle Sidebar"
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200"
       >
-        {open ? <X size={20} /> : <Menu size={20} />}
+        {isOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
       </button>
 
-      <aside
-        className={`fixed top-14 left-0 h-[calc(100vh-3.5rem)] w-64 
-          bg-white dark:bg-gray-900 shadow-md border-r 
-          flex flex-col z-40 transition-transform duration-300
-          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-        `}
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <motion.div
+        initial={false}
+        animate={{ width: isCollapsed ? 80 : 280 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg z-30 flex flex-col ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } transition-transform duration-300`}
       >
-        <nav className="flex-1 overflow-y-auto scrollbar-hide p-3">
-          <ul className="space-y-1">
-            {menuItems
-              .filter((item) => !item.roles || item.roles.includes(user?.role))
-              .map(({ path, label, icon: Icon, children }) => {
-                const isActive =
-                  path === "/"
-                    ? location.pathname === "/"
-                    : path && location.pathname.startsWith(path);
+        {/* Header */}
+        <div className={`flex items-center justify-center p-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
+          isCollapsed ? 'px-2 py-4' : ''
+        }`}>
+          {!isCollapsed ? (
+            <>
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                  <span className="text-white font-bold text-lg">R</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Recruitment</h2>
+                  <p className="text-xs text-gray-500">Admin Portal</p>
+                </div>
+              </div>
+              <button
+                onClick={toggleCollapse}
+                className="flex items-center justify-center p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Collapse sidebar"
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center space-y-2 w-full">
+              {/* <div 
+                className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200"
+                title="Recruitment Admin Portal - Click to expand"
+                onClick={() => setIsCollapsed(false)}
+              >
+                <span className="text-white font-bold text-xl">R</span>
+              </div> */}
+              <button
+                onClick={toggleCollapse}
+                className="flex items-center justify-center p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Collapse sidebar"
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          )}
+        </div>
 
-                if (children) {
-                  const isDropdownOpen = !!dropdownOpen[label];
-                  return (
-                    <li key={label}>
-                      <button
-                        onClick={() => toggleDropdown(label)}
-                        className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors
-                          hover:bg-gray-100 dark:hover:bg-gray-700
-                          text-gray-700 dark:text-gray-300
-                          ${isDropdownOpen ? "bg-gray-200 dark:bg-gray-700 font-semibold" : ""}
-                        `}
-                      >
-                        <span className="flex items-center gap-3">
-                          <Icon size={18} />
-                          {label}
-                        </span>
-                        <ChevronDown
-                          size={16}
-                          className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      {isDropdownOpen && (
-                        <ul className="ml-6 mt-1 space-y-1">
-                          {children.map((child) => (
-                            <li key={child.path}>
-                              <Link
-                                to={child.path}
-                                className={`block p-2 rounded-md transition-colors
-                                  hover:bg-gray-100 dark:hover:bg-gray-700
-                                  text-gray-600 dark:text-gray-300
-                                  ${
-                                    location.pathname.startsWith(child.path)
-                                      ? "bg-gray-200 dark:bg-gray-700 font-semibold"
-                                      : ""
-                                  }
-                                `}
-                                onClick={() => setOpen(false)}
-                              >
-                                {child.label}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                }
-
-                return (
-                  <li key={path}>
-                    <Link
-                      to={path}
-                      className={`flex items-center gap-3 p-2 rounded-lg transition-colors
-                        hover:bg-gray-100 dark:hover:bg-gray-700
-                        text-gray-700 dark:text-gray-300
-                        ${isActive ? "bg-blue-100 text-blue-600 font-semibold" : ""}
-                      `}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-          </ul>
+        {/* Navigation */}
+        <nav className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 ${
+          isCollapsed ? 'px-2 py-4' : 'px-4 py-4'
+        }`}>
+          <div className={`space-y-1 ${isCollapsed ? 'space-y-2' : ''}`}>
+            {menuItems.map(renderMenuItem)}
+          </div>
         </nav>
-      </aside>
 
-      <style>
-        {`
-          .scrollbar-hide::-webkit-scrollbar { display: none; }
-          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        `}
-      </style>
+        
+        {/* User Profile */}
+        {user && (
+          <div className={`border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
+            isCollapsed ? 'p-2' : 'p-4'
+          }`}>
+            {!isCollapsed ? (
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-white">
+                  <span className="text-white font-semibold text-lg">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                  <div className="flex items-center space-x-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div 
+                    className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200 ring-2 ring-white"
+                    title={`${user.name} (${user.role}) - Click to expand`}
+                    onClick={() => setIsCollapsed(false)}
+                  >
+                    <span className="text-white font-semibold text-lg">
+                      {user.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  {/* Online status indicator */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm"></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
     </>
   );
 }

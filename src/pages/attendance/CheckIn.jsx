@@ -1,16 +1,56 @@
-import React, { useState } from "react";
-import dummyApplicants from "../../data/dummyApplicants";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { apiClient } from "../../utils/apiConfig";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function CheckIn({ role }) {
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState("");
   const [libraryId, setLibraryId] = useState("");
-  const [results, setResults] = useState(dummyApplicants);
-  const uniqueBranches = [...new Set(dummyApplicants.map((a) => a.department))];
+  const [results, setResults] = useState([]);
+  const [allApplicants, setAllApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
+  
+  useEffect(() => {
+    const fetchApplicants = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.getApplicants();
+        const applicants = response.data || [];
+        setAllApplicants(applicants);
+        setResults(applicants);
+      } catch (error) {
+        console.error("Error fetching applicants:", error);
+        toast.error("Failed to load applicants");
+        setAllApplicants([]);
+        setResults([]);
+      } finally {
+        setLoading(false);
+        
+        // Ensure scroll to top after data is loaded
+        setTimeout(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }, 100);
+      }
+    };
+    fetchApplicants();
+  }, []);
+  
+  const uniqueBranches = [...new Set(allApplicants.map((a) => a.department))];
+  
   function searchApplicants(e) {
     if (e) e.preventDefault();
-    let filtered = [...dummyApplicants];
+    let filtered = [...allApplicants];
 
     if (query.trim() !== "") {
       const q = query.toLowerCase();
@@ -33,11 +73,11 @@ export default function CheckIn({ role }) {
   function toggleBranch(selectedBranch) {
     if (branch === selectedBranch) {
       setBranch("");
-      setResults(dummyApplicants);
+      setResults(allApplicants);
     } else {
       setBranch(selectedBranch);
       setResults(
-        dummyApplicants.filter(
+        allApplicants.filter(
           (a) => a.department.toLowerCase() === selectedBranch.toLowerCase()
         )
       );
@@ -49,9 +89,17 @@ export default function CheckIn({ role }) {
     setResults((prev) => prev.filter((a) => a.id !== applicantId));
     toast.success(`${applicant.name} Present`);
   }
+  if (loading) {
+    return (
+      <div className="w-full p-6 text-center">
+        <p className="text-gray-600">Loading applicants...</p>
+      </div>
+    );
+  }
+  
   if (role < 1) {
     return (
-      <div className="max-w-lg mx-auto mt-12 mx-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+      <div className="max-w-lg mx-auto mt-12 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
         <div className="p-4">
           <p className="text-red-600 text-center">Access Denied: Members or higher only</p>
         </div>
@@ -61,7 +109,7 @@ export default function CheckIn({ role }) {
 
   return (
     <div className="space-y-4 lg:space-y-6 w-full p-3 sm:p-4 lg:p-6">
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
 
       <div className="w-full shadow-md border rounded-lg bg-white">
         <div className="space-y-4 p-4 lg:p-6">
@@ -113,7 +161,7 @@ export default function CheckIn({ role }) {
               <button
                 onClick={() => {
                   setBranch("");
-                  setResults(dummyApplicants);
+                  setResults(allApplicants);
                 }}
                 className="border border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8 px-2 sm:px-3 rounded-md bg-transparent transition-colors focus:outline-none"
               >

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import dummyApplicants from "../../data/dummyApplicants";
+import { useLocation } from "react-router-dom";
+import { apiClient } from "../../utils/apiConfig";
 import toast, { Toaster } from "react-hot-toast";
 
 const DomainInterviewBase = ({ domain }) => {
+  const location = useLocation();
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [evaluatingApplicant, setEvaluatingApplicant] = useState(null);
@@ -10,14 +12,38 @@ const DomainInterviewBase = ({ domain }) => {
   const [decision, setDecision] = useState("");
 
   useEffect(() => {
-    const fetchDomainApplicants = () => {
-      setTimeout(() => {
-        const filtered = dummyApplicants.filter(
-          (a) => a.status === "Interview Scheduled" && a.assignedDomain === domain
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const fetchDomainApplicants = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.getApplicants();
+        const allApplicants = response.data || [];
+        
+        // Filter for applicants scheduled for interviews in this domain
+        const filtered = allApplicants.filter(
+          (a) => a.status === "INTERVIEW_SCHEDULED" && a.assignedDomain === domain
         );
         setApplicants(filtered);
+      } catch (error) {
+        console.error("Error fetching domain applicants:", error);
+        toast.error("Failed to load applicants");
+        setApplicants([]);
+      } finally {
         setLoading(false);
-      }, 500);
+        
+        // Ensure scroll to top after data is loaded
+        setTimeout(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }, 100);
+      }
     };
     fetchDomainApplicants();
   }, [domain]);
@@ -55,7 +81,7 @@ const DomainInterviewBase = ({ domain }) => {
 
   return (
     <div className="p-3 sm:p-6 max-w-7xl mx-auto min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
       <h1 className="text-2xl sm:text-3xl font-semibold mb-4 sm:mb-6 border-b border-gray-300 pb-3">
         {domain} Domain Interviews
       </h1>
@@ -91,7 +117,7 @@ const DomainInterviewBase = ({ domain }) => {
                     <td className="p-3 border-b border-gray-300 dark:border-gray-600">{applicant.name}</td>
                     <td className="p-3 border-b border-gray-300 dark:border-gray-600">{applicant.department}</td>
                     <td className="p-3 border-b border-gray-300 dark:border-gray-600">{applicant.year}</td>
-                    <td className="p-3 border-b border-gray-300 dark:border-gray-600">{applicant.group || "-"}</td>
+                    <td className="p-3 border-b border-gray-300 dark:border-gray-600">{applicant.groupNumber || "-"}</td>
                     <td className="p-3 border-b border-gray-300 dark:border-gray-600">
                       {applicant.interviewDate
                         ? new Date(applicant.interviewDate).toLocaleDateString()
@@ -141,7 +167,7 @@ const DomainInterviewBase = ({ domain }) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Group:</span>
-                    <span>{applicant.group || "-"}</span>
+                    <span>{applicant.groupNumber || "-"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Interview Date:</span>
