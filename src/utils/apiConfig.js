@@ -1,5 +1,5 @@
 // API Configuration and utilities
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://rec-backend-z2qa.onrender.com';
+const API_BASE_URL = 'https://rec-backend-z2qa.onrender.com';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
