@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 const dummyTemplates = [
   { _id: "t1", templateKey: "welcome", subject: "Welcome to the Drive" },
@@ -18,6 +19,7 @@ const dummyRecipients = [
 ];
 
 const BulkMail = () => {
+  const location = useLocation();
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [recipients, setRecipients] = useState([]);
@@ -27,9 +29,23 @@ const BulkMail = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
+
+  useEffect(() => {
     setTimeout(() => {
       setTemplates(dummyTemplates);
       setRecipients(dummyRecipients);
+      
+      // Ensure scroll to top after data is loaded
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 100);
     }, 500);
   }, []);
 
@@ -98,6 +114,7 @@ const BulkMail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 sm:p-6 lg:p-8 flex flex-col max-w-7xl mx-auto">
+      <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Bulk Mail</h1>
 
       <div className="flex flex-col gap-4 sm:gap-6 mb-4 sm:mb-6">

@@ -1,51 +1,43 @@
 import React, { useEffect, useState } from "react";
-
-const dummyTasks = [
-  {
-    _id: "1",
-    applicantId: "A101",
-    domain: "GD",
-    deadline: "2025-08-20T23:59:59Z",
-    submittedAt: null,
-    fileUrl: null,
-    mailLogId: "M001",
-  },
-  {
-    _id: "2",
-    applicantId: "A102",
-    domain: "Coding",
-    deadline: "2025-08-21T23:59:59Z",
-    submittedAt: "2025-08-21T18:30:00Z",
-    fileUrl: "https://example.com/submissions/code1.pdf",
-    mailLogId: "M002",
-  },
-  {
-    _id: "3",
-    applicantId: "A103",
-    domain: "HR",
-    deadline: "2025-08-22T23:59:59Z",
-    submittedAt: null,
-    fileUrl: null,
-    mailLogId: "M003",
-  },
-];
+import { useLocation } from "react-router-dom";
+import { apiClient } from "../../utils/apiConfig";
+import toast, { Toaster } from "react-hot-toast";
 
 const TaskList = () => {
+  const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all");
 
+  useEffect(() => {
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
+
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      setTimeout(() => {
-        setTasks(dummyTasks);
-        setLoading(false);
-      }, 600);
+      // Note: Replace with actual API endpoint when available
+      // const response = await apiClient.getTasks();
+      // setTasks(response.data || []);
+      
+      // For now, show empty state since no real tasks API endpoint exists
+      setTasks([]);
     } catch (err) {
-      console.error(err);
-      alert("Failed to fetch tasks");
+      console.error("Error fetching tasks:", err);
+      toast.error("Failed to fetch tasks");
+      setTasks([]);
+    } finally {
       setLoading(false);
+      
+      // Ensure scroll to top after data is loaded
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 100);
     }
   };
 
@@ -77,6 +69,7 @@ const TaskList = () => {
 
   return (
     <div className="p-3 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white">
+      <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
       <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">
         Student Task Submissions
       </h1>

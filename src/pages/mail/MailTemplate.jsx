@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
 const MailTemplate = () => {
+  const location = useLocation();
   const [templates, setTemplates] = useState([]);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [form, setForm] = useState({ templateKey: "", subject: "", body: "" });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Multiple approaches to ensure scroll to top works
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
 
   const dummyTemplates = [
     { _id: "1", templateKey: "welcome", subject: "Welcome to Our Drive", body: "Hello {{name}}, welcome!" },
@@ -19,11 +28,25 @@ const MailTemplate = () => {
       setTimeout(() => {
         setTemplates(dummyTemplates);
         setLoading(false);
+        
+        // Ensure scroll to top after data is loaded
+        setTimeout(() => {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }, 100);
       }, 500);
     } catch (err) {
       console.error(err);
       toast.error("Error fetching templates");
       setLoading(false);
+      
+      // Ensure scroll to top even on error
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 100);
     }
   };
 
