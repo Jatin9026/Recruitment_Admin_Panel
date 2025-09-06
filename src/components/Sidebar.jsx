@@ -39,10 +39,10 @@ const menuItems = [
     icon: CheckCircle,
     roles: ROUTE_PERMISSIONS.interviews,
     children: [
-      { path: "/interview/tech", label: "Tech" },
+      { path: "/interview/tech", label: "Technical" },
       { path: "/interview/graphics", label: "Graphics" },
-      { path: "/interview/pr", label: "PR" },
-      { path: "/interview/cr", label: "CR" },
+      { path: "/interview/pr", label: "Public Relations" },
+      { path: "/interview/cr", label: "Corporate Relations" },
       { path: "/interview/events", label: "Events" },
     ],
   },
@@ -290,7 +290,11 @@ export default function Sidebar() {
           }`}>
             {!isCollapsed ? (
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-white">
+                <div 
+                  className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md cursor-pointer ring-2 ring-white"
+                  title={`${user.name} (${user.role})`}
+                  onClick={toggleCollapse}
+                >
                   <span className="text-white font-semibold text-lg">
                     {user.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
@@ -309,7 +313,7 @@ export default function Sidebar() {
                   <div 
                     className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200 ring-2 ring-white"
                     title={`${user.name} (${user.role}) - Click to expand`}
-                    onClick={() => setIsCollapsed(false)}
+                    onClick={toggleCollapse}
                   >
                     <span className="text-white font-semibold text-lg">
                       {user.name?.charAt(0).toUpperCase() || 'U'}
