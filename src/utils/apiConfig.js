@@ -46,12 +46,6 @@ export const API_ENDPOINTS = {
   // Groups
   GROUP_STATISTICS: '/api/users/groups/statistics',
   
-  // Auth
-  LOGIN: '/api/auth/login',
-  VERIFY_OTP: '/api/auth/verify-otp',
-  REFRESH_TOKEN: '/api/auth/refresh',
-  LOGOUT: '/api/auth/logout',
-  
   // Admin
   ADMIN_LOGIN: '/api/admin/login',
   ADMIN_CREATE: '/api/admin/create',
@@ -176,35 +170,6 @@ export class ApiClient {
   // Group operations
   async getGroupStatistics() {
     return this.request(API_ENDPOINTS.GROUP_STATISTICS);
-  }
-
-  // Auth operations
-  async login(email) {
-    return this.request(API_ENDPOINTS.LOGIN, {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
-  }
-
-  async verifyOTP(email, otp) {
-    return this.request(API_ENDPOINTS.VERIFY_OTP, {
-      method: 'POST',
-      body: JSON.stringify({ email, otp })
-    });
-  }
-
-  async refreshToken(refreshToken) {
-    return this.request(API_ENDPOINTS.REFRESH_TOKEN, {
-      method: 'POST',
-      body: JSON.stringify({ refresh_token: refreshToken })
-    });
-  }
-
-  async logout(refreshToken) {
-    return this.request(API_ENDPOINTS.LOGOUT, {
-      method: 'POST',
-      body: JSON.stringify({ refresh_token: refreshToken })
-    });
   }
 
   // Admin operations

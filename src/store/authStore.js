@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiClient } from "../utils/apiConfig";
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -10,80 +11,57 @@ const useAuthStore = create((set, get) => ({
   isInitialized: false,
 
   login: async (credentials) => {
-      set({ isLoading: true, error: null });
-      try {
-        const response = await fetch("/api/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(credentials),
-        });
+    set({ isLoading: true, error: null });
+    try {
+      const data = await apiClient.adminLogin(credentials.email, credentials.password);
+      
+      set({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      localStorage.setItem("accessToken", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token);
 
-        const data = await response.json();
-        if (!response.ok) {
-          set({ error: data.detail || "Login failed", isLoading: false });
-          return { success: false, error: data.detail };
-        }
-        set({
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        localStorage.setItem("accessToken", data.access_token);
-        localStorage.setItem("refreshToken", data.refresh_token);
-
-        await get().fetchUser();
-        return { success: true };
-      } catch (err) {
-        set({ error: err.message || "Network error", isLoading: false });
-        return { success: false, error: err.message };
-      }
-    },
+      await get().fetchUser();
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error.message || "Login failed";
+      set({ error: errorMessage, isLoading: false });
+      return { success: false, error: errorMessage };
+    }
+  },
 
   fetchUser: async () => {
     const token = get().accessToken;
     if (!token) return;
 
     try {
-      const response = await fetch("/api/admin/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        set({ user: data });
-        localStorage.setItem("adminUser", JSON.stringify(data));
-      } else {
-        set({ error: "Failed to fetch user" });
-      }
-    } catch (err) {
-      set({ error: err.message });
+      const data = await apiClient.getAdminInfo();
+      set({ user: data });
+      localStorage.setItem("adminUser", JSON.stringify(data));
+    } catch (error) {
+      set({ error: error.message || "Failed to fetch user" });
     }
   },
 
   refreshAccessToken: async () => {
+    // No refresh token endpoint available for admin authentication
+    // Admin tokens should be long-lived or require re-login
+    console.warn("No refresh token endpoint available for admin authentication");
     const refreshToken = get().refreshToken;
-    if (!refreshToken) return;
-
-    try {
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        set({ accessToken: data.access_token });
-        localStorage.setItem("accessToken", data.access_token);
-      } else {
-        get().logout();
-      }
-    } catch {
+    if (!refreshToken) {
       get().logout();
+      return;
     }
+    
+    // For now, if refresh is needed, redirect to login
+    get().logout();
   },
 
   logout: () => {
+    // Clear local state and storage (no admin logout endpoint available)
     set({ 
       user: null, 
       isAuthenticated: false, 
