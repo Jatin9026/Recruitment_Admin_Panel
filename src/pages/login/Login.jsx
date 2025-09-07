@@ -66,7 +66,7 @@ export default function LoginPage() {
           />
         
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome too Recruitment Portal</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Recruitment Portal</h1>
           <p className="text-gray-600 text-sm">Admin access to manage recruitment process</p>
         </motion.div>
 
