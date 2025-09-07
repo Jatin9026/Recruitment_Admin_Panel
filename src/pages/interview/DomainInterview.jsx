@@ -619,7 +619,7 @@ const DomainInterviewBase = ({ domain }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
           >
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
@@ -638,7 +638,7 @@ const DomainInterviewBase = ({ domain }) => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto min-h-0">
               {/* Candidate Info */}
               <div className="bg-gray-50 rounded-xl p-4 mb-6">
                 <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -780,7 +780,7 @@ const DomainInterviewBase = ({ domain }) => {
             </div>
 
             {/* Modal Footer */}
-            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+            <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-gray-50">
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={handleCloseEvaluation}
