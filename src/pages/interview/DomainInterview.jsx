@@ -163,25 +163,14 @@ const DomainInterviewBase = ({ domain }) => {
     try {
       setSubmitting(true);
       
-      // API call to update PI status
-      const response = await fetch(`/api/users/${evaluatingApplicant.email}/pi`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({
-          status: decision === "select" ? "selected" : "rejected",
-          datetime: new Date().toISOString(),
-          remarks: feedback || `${decision === "select" ? "Selected" : "Rejected"} for ${domain} domain`
-        })
-      });
+      // API call to update PI status using apiClient
+      const piData = {
+        status: decision === "select" ? "selected" : "rejected",
+        datetime: new Date().toISOString(),
+        remarks: feedback || `${decision === "select" ? "Selected" : "Rejected"} for ${domain} domain`
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to update interview status');
-      }
-
-      const updatedApplicant = await response.json();
+      const updatedApplicant = await apiClient.updateUserPI(evaluatingApplicant.email, piData);
 
       // Update local state
       setApplicants(prev => 
