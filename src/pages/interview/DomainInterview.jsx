@@ -239,8 +239,8 @@ const DomainInterviewBase = ({ domain }) => {
         >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Award className="w-8 h-8 text-purple-600" />
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Award className="w-8 h-8 text-blue-600" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{domain} Domain Interviews</h1>
@@ -408,7 +408,7 @@ const DomainInterviewBase = ({ domain }) => {
                 placeholder="Search by name, email, or library ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -421,7 +421,7 @@ const DomainInterviewBase = ({ domain }) => {
               <select
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Departments</option>
                 {departments.map(dept => (
@@ -439,7 +439,7 @@ const DomainInterviewBase = ({ domain }) => {
               <select
                 value={filterYear}
                 onChange={(e) => setFilterYear(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Years</option>
                 {years.map(year => (
@@ -468,7 +468,7 @@ const DomainInterviewBase = ({ domain }) => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Award className="w-5 h-5 mr-2 text-purple-600" />
+                <Award className="w-5 h-5 mr-2 text-blue-600" />
                 Interview Candidates ({filteredApplicants.length})
               </h2>
             </div>
@@ -484,7 +484,7 @@ const DomainInterviewBase = ({ domain }) => {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"
+                  className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"
                 />
                 <p className="text-gray-600 text-lg font-medium">Refreshing candidates data...</p>
               </motion.div>
@@ -516,8 +516,8 @@ const DomainInterviewBase = ({ domain }) => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4 flex-1">
-                        <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                          <User className="w-6 h-6 text-purple-600" />
+                        <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                          <User className="w-6 h-6 text-blue-600" />
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
@@ -587,7 +587,7 @@ const DomainInterviewBase = ({ domain }) => {
                       <div className="ml-4">
                         <button
                           onClick={() => handleOpenEvaluation(applicant)}
-                          className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm group-hover:shadow-md"
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm group-hover:shadow-md"
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           {applicant.pi?.status && applicant.pi.status !== "scheduled" ? "Review" : "Interview"}
@@ -607,7 +607,7 @@ const DomainInterviewBase = ({ domain }) => {
                             </span>
                           )}
                           {applicant.domain_pref_two && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                               <Target className="w-3 h-3 mr-1" />
                               2nd: {applicant.domain_pref_two.name}
                             </span>
@@ -633,11 +633,11 @@ const DomainInterviewBase = ({ domain }) => {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
           >
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">{domain} Domain Interview</h2>
-                  <p className="text-purple-100 text-sm">{evaluatingApplicant.name}</p>
+                  <p className="text-blue-100 text-sm">{evaluatingApplicant.name}</p>
                 </div>
                 <button
                   onClick={handleCloseEvaluation}
@@ -687,9 +687,9 @@ const DomainInterviewBase = ({ domain }) => {
                         </div>
                       )}
                       {evaluatingApplicant.domain_pref_two && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                          <p className="text-xs font-medium text-purple-800">2nd Choice: {evaluatingApplicant.domain_pref_two.name}</p>
-                          <p className="text-xs text-purple-600 mt-1">{evaluatingApplicant.domain_pref_two.reason}</p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                          <p className="text-xs font-medium text-blue-800">2nd Choice: {evaluatingApplicant.domain_pref_two.name}</p>
+                          <p className="text-xs text-blue-600 mt-1">{evaluatingApplicant.domain_pref_two.reason}</p>
                         </div>
                       )}
                     </div>
@@ -782,7 +782,7 @@ const DomainInterviewBase = ({ domain }) => {
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder={`Share your feedback about ${evaluatingApplicant.name}'s interview performance...`}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Provide detailed feedback to help improve the candidate's future performance.
@@ -806,7 +806,7 @@ const DomainInterviewBase = ({ domain }) => {
                   className={`px-6 py-2 rounded-lg font-semibold transition-all flex items-center ${
                     !decision || submitting
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-purple-600 text-white hover:bg-purple-700 shadow-md hover:shadow-lg'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                   }`}
                 >
                   {submitting ? (
