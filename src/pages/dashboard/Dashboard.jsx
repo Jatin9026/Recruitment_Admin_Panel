@@ -62,6 +62,7 @@ const Dashboard = () => {
     const total = applicants.length;
     const gdSelected = applicants.filter(a => a.gd?.status === "selected").length;
     const gdRejected = applicants.filter(a => a.gd?.status === "rejected").length;
+    const gdAbsent = applicants.filter(a => a.gd?.status === "absent").length;
     const gdScheduled = applicants.filter(a => a.gd?.status === "scheduled").length;
     const screeningSelected = applicants.filter(a => a.screening?.status === "selected").length;
     const screeningRejected = applicants.filter(a => a.screening?.status === "rejected").length;
@@ -86,6 +87,7 @@ const Dashboard = () => {
       total,
       gdSelected,
       gdRejected,
+      gdAbsent,
       gdScheduled,
       screeningSelected,
       screeningRejected,
@@ -168,9 +170,9 @@ const Dashboard = () => {
     );
   };
 
-  const ProcessCard = ({ stage, selected, rejected, scheduled, total, colorScheme, icon: Icon }) => {
-    const pending = total - selected - rejected - (scheduled || 0);
-    const completionRate = total > 0 ? ((selected + rejected) / total * 100).toFixed(1) : 0;
+  const ProcessCard = ({ stage, selected, rejected, absent, scheduled, total, colorScheme, icon: Icon }) => {
+    const pending = total - selected - rejected - (absent || 0) - (scheduled || 0);
+    const completionRate = total > 0 ? ((selected + rejected + (absent || 0)) / total * 100).toFixed(1) : 0;
     
     const colorClasses = {
       blue: { bg: "bg-blue-100", text: "text-blue-600", progress: "bg-blue-600" },
@@ -208,6 +210,12 @@ const Dashboard = () => {
             <span className="text-sm text-gray-600">Rejected</span>
             <span className="font-medium text-red-600">{rejected}</span>
           </div>
+          {absent > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Absent</span>
+              <span className="font-medium text-orange-600">{absent}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Pending</span>
             <span className="font-medium text-yellow-600">{pending}</span>
@@ -355,6 +363,7 @@ const Dashboard = () => {
             stage="Group Discussion"
             selected={stats.gdSelected || 0}
             rejected={stats.gdRejected || 0}
+            absent={stats.gdAbsent || 0}
             scheduled={stats.gdScheduled || 0}
             total={stats.total || 0}
             colorScheme="blue"
