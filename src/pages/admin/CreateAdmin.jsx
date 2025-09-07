@@ -44,7 +44,7 @@ const CreateAdmin = () => {
     { value: 'SuperAdmin', label: 'Super Admin', description: 'Full system access with all administrative privileges' },
     { value: 'GDProctor', label: 'GD Proctor', description: 'Manages group discussions and applicant evaluation' },
     { value: 'Interviewer', label: 'Interviewer', description: 'Conducts interviews across different domains' },
-    { value: 'Admin', label: 'Admin', description: 'General administrative access' }
+    // { value: 'Admin', label: 'Admin', description: 'General administrative access' }
   ];
 
   useEffect(() => {
