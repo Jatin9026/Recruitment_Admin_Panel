@@ -35,7 +35,7 @@ export const ROUTE_PERMISSIONS = {
   bulkMail: [ROLES.SUPER_ADMIN],
   
   // Task Management
-  tasks: [ROLES.SUPER_ADMIN],
+//   tasks: [ROLES.SUPER_ADMIN],
   
   // Admin Management
   createAdmin: [ROLES.SUPER_ADMIN]

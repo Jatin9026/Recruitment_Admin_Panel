@@ -172,9 +172,9 @@ const PendingScreening = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 px-6 py-4">
       <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
-      <div className="mx-auto space-y-6">
+      <div className="space-y-6">
         
         {/* Header Section */}
         <motion.div

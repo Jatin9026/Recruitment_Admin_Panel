@@ -1,32 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
-
-const dummyTemplates = [
-  { _id: "t1", templateKey: "welcome", subject: "Welcome to the Drive" },
-  { _id: "t2", templateKey: "interview", subject: "Interview Schedule" },
-  { _id: "t3", templateKey: "rejection", subject: "Application Status Update" },
-];
-
-const dummyRecipients = [
-  { _id: "u1", name: "Rahul Kumar", email: "rahul@example.com", domain: "Tech" },
-  { _id: "u2", name: "Sneha Sharma", email: "sneha@example.com", domain: "Graphics" },
-  { _id: "u3", name: "Amit Patel", email: "amit@example.com", domain: "PR" },
-  { _id: "u4", name: "Priya Singh", email: "priya@example.com", domain: "Tech" },
-  { _id: "u5", name: "Rohan Das", email: "rohan@example.com", domain: "CR" },
-  { _id: "u6", name: "Anjali Verma", email: "anjali@example.com", domain: "Graphics" },
-];
+import { apiClient } from "../../utils/apiConfig";
 
 const BulkMail = () => {
   const location = useLocation();
-  const [templates, setTemplates] = useState([]);
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [recipients, setRecipients] = useState([]);
-  const [selectedRecipients, setSelectedRecipients] = useState([]);
-  const [sentRecipients, setSentRecipients] = useState([]);
+  const [applicants, setApplicants] = useState([]);
+  const [filteredApplicants, setFilteredApplicants] = useState([]);
+  const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [filterDomain, setFilterDomain] = useState("All");
-  const [loading, setLoading] = useState(false);
+  const [filterRound, setFilterRound] = useState("All");
+  const [filterGroup, setFilterGroup] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [showStats, setShowStats] = useState(true);
+  
+  // Email template state
+  const [apiTemplates, setApiTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [useCustomTemplate, setUseCustomTemplate] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [customSubject, setCustomSubject] = useState("");
+  const [customBody, setCustomBody] = useState("");
+  const [templateProps, setTemplateProps] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showPayload, setShowPayload] = useState(false);
 
   useEffect(() => {
     // Multiple approaches to ensure scroll to top works
@@ -36,9 +37,61 @@ const BulkMail = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    setTimeout(() => {
-      setTemplates(dummyTemplates);
-      setRecipients(dummyRecipients);
+    fetchAllApplicants();
+    fetchEmailTemplates();
+  }, []);
+
+  const fetchEmailTemplates = async () => {
+    try {
+      setLoadingTemplates(true);
+      const response = await apiClient.getEmailTemplates();
+      setApiTemplates(response || []);
+      toast.success(`Loaded ${response?.length || 0} email templates`);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      toast.error("Failed to load email templates");
+      setApiTemplates([]);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      toast.success("Refreshing applicants and templates data...");
+      await Promise.all([
+        fetchAllApplicants(),
+        fetchEmailTemplates()
+      ]);
+      toast.success("Data refreshed successfully!");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const fetchAllApplicants = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getUsers();
+      
+      // Get all applicants and sort by group number in ascending order
+      const sortedApplicants = response.sort((a, b) => {
+        const groupA = a.groupNumber || 999999; // Put null/undefined groups at end
+        const groupB = b.groupNumber || 999999;
+        return groupA - groupB;
+      });
+      
+      setApplicants(sortedApplicants);
+      setFilteredApplicants(sortedApplicants);
+    } catch (error) {
+      console.error("Error fetching applicants:", error);
+      toast.error("Failed to load applicants");
+    } finally {
+      setLoading(false);
       
       // Ensure scroll to top after data is loaded
       setTimeout(() => {
@@ -46,242 +99,1131 @@ const BulkMail = () => {
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
       }, 100);
-    }, 500);
-  }, []);
+    }
+  };
 
-  const handleRecipientToggle = (id) => {
-    setSelectedRecipients((prev) =>
-      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+  // Filter applicants by domain, round, and group
+  useEffect(() => {
+    let filtered = applicants;
+    
+    // Filter by domain
+    if (filterDomain !== "All") {
+      filtered = filtered.filter(applicant => 
+        applicant.domains && applicant.domains.includes(filterDomain)
+      );
+    }
+    
+    // Filter by round selection status
+    if (filterRound !== "All") {
+      filtered = filtered.filter(applicant => {
+        switch (filterRound) {
+          case "screening_selected":
+            return applicant.screening && applicant.screening.status === "selected";
+          case "gd_scheduled":
+            return applicant.gd && applicant.gd.status === "scheduled"; // Check for scheduled status
+          case "gd_selected":
+            return applicant.gd && applicant.gd.status === "selected";
+          case "pi_selected":
+            return applicant.pi && applicant.pi.status === "selected";
+          case "task_completed":
+            return applicant.task && applicant.task.status === "completed";
+          case "shortlisted":
+            return applicant.shortlisted === true;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Filter by group number
+    if (filterGroup !== "All") {
+      if (filterGroup === "unassigned") {
+        filtered = filtered.filter(applicant => 
+          !applicant.groupNumber || applicant.groupNumber === null || applicant.groupNumber === undefined
+        );
+      } else {
+        filtered = filtered.filter(applicant => 
+          applicant.groupNumber === parseInt(filterGroup)
+        );
+      }
+    }
+    
+    setFilteredApplicants(filtered);
+  }, [applicants, filterDomain, filterRound, filterGroup]);
+
+  const handleApplicantToggle = (email) => {
+    setSelectedApplicants(prev =>
+      prev.includes(email) 
+        ? prev.filter(e => e !== email) 
+        : [...prev, email]
     );
   };
 
   const handleSelectDomain = (domain) => {
     if (domain === "All") {
-      if (selectedRecipients.length === recipients.length) {
-        setSelectedRecipients([]);
+      if (selectedApplicants.length === filteredApplicants.length) {
+        setSelectedApplicants([]);
       } else {
-        setSelectedRecipients(recipients.map((r) => r._id));
+        setSelectedApplicants(filteredApplicants.map(a => a.email));
       }
       return;
     }
-    const domainStudents = recipients
-      .filter((r) => r.domain === domain)
-      .map((r) => r._id);
-    setSelectedRecipients((prev) => {
-      const allSelected = domainStudents.every((id) => prev.includes(id));
+    
+    const domainApplicants = filteredApplicants
+      .filter(a => a.domains && a.domains.includes(domain))
+      .map(a => a.email);
+    
+    setSelectedApplicants(prev => {
+      const allSelected = domainApplicants.every(email => prev.includes(email));
       return allSelected
-        ? prev.filter((id) => !domainStudents.includes(id))
-        : Array.from(new Set([...prev, ...domainStudents]));
+        ? prev.filter(email => !domainApplicants.includes(email))
+        : Array.from(new Set([...prev, ...domainApplicants]));
     });
   };
 
-  const handleSend = async () => {
-    if (!selectedTemplate) {
-      toast.error("Please select a template");
-      return;
-    }
-    if (selectedRecipients.length === 0) {
-      toast.error("Please select at least one recipient");
-      return;
-    }
-    try {
-      setLoading(true);
-      setTimeout(() => {
-        setSentRecipients((prev) => [...prev, ...selectedRecipients]);
-        toast.success(
-          `Emails sent. Template: ${selectedTemplate}, Recipients: ${selectedRecipients.length}`
-        );
-        setSelectedRecipients([]);
-        setSelectedTemplate("");
-        setLoading(false);
-      }, 1000);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error sending emails");
-      setLoading(false);
+  const handleTemplateSelect = (templateId) => {
+    const template = apiTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(templateId);
+      setCustomSubject(template.subject || "");
+      setCustomBody(template.body || "");
+      
+      // Set up template properties from the custom field array
+      const customFields = template.custom || [];
+      setTemplateProps(customFields.map(field => ({ key: field, value: "" })));
     }
   };
 
-  const filteredRecipients =
-    filterDomain === "All"
-      ? recipients
-      : [
-          ...recipients.filter((r) => r.domain === filterDomain),
-          ...recipients.filter((r) => r.domain !== filterDomain),
-        ];
+  const addTemplateProp = () => {
+    setTemplateProps(prev => [...prev, { key: "", value: "" }]);
+  };
 
-  const uniqueDomains = ["All", ...new Set(recipients.map((r) => r.domain))];
+  const removeTemplateProp = (index) => {
+    setTemplateProps(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateTemplateProp = (index, field, value) => {
+    setTemplateProps(prev => 
+      prev.map((prop, i) => 
+        i === index ? { ...prop, [field]: value } : prop
+      )
+    );
+  };
+
+  const generateEmailPayload = () => {
+    // Create selected applicant data in the same order as selectedApplicants (emails)
+    const selectedApplicantData = selectedApplicants.map(email => 
+      filteredApplicants.find(a => a.email === email)
+    ).filter(Boolean); // Remove any undefined entries
+
+    // Create custom data object according to API specification
+    const customData = {};
+    
+    // Only add template-specific variables (no extra variables)
+    templateProps.forEach(prop => {
+      if (prop.key) {
+        // Map common variables to applicant data or use provided value
+        switch (prop.key.toLowerCase()) {
+          case 'date':
+          case 'datetime':
+            // Use GD datetime if available, otherwise use provided value
+            customData[prop.key] = selectedApplicantData.map(a => {
+              if (a.gd && a.gd.datetime) {
+                // Parse the ISO string directly without timezone conversion
+                const date = new Date(a.gd.datetime);
+                // Use UTC methods to avoid timezone issues
+                const year = date.getUTCFullYear();
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                return `${month}/${day}/${year}`;
+              }
+              return prop.value || "";
+            });
+            break;
+          case 'time':
+            // Extract time from GD datetime if available, otherwise use provided value
+            customData[prop.key] = selectedApplicantData.map(a => {
+              if (a.gd && a.gd.datetime) {
+                // Parse the ISO string directly without timezone conversion
+                const date = new Date(a.gd.datetime);
+                // Use UTC methods to avoid timezone issues
+                let hours = date.getUTCHours();
+                const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // 0 should be 12
+                const hoursStr = String(hours).padStart(2, '0');
+                return `${hoursStr}:${minutes} ${ampm}`;
+              }
+              return prop.value || "";
+            });
+            break;
+          case 'venue':
+          case 'location':
+            // Use GD venue if available, otherwise use provided value
+            customData[prop.key] = selectedApplicantData.map(a => {
+              if (a.gd && a.gd.venue) {
+                return a.gd.venue;
+              }
+              return prop.value || "";
+            });
+            break;
+          case 'name':
+            // Always use applicant's actual name
+            customData[prop.key] = selectedApplicantData.map(a => a.name || "");
+            break;
+          case 'email':
+            // Always use applicant's actual email
+            customData[prop.key] = selectedApplicantData.map(a => a.email || "");
+            break;
+          case 'domain':
+            // Use applicant's domain
+            customData[prop.key] = selectedApplicantData.map(a => 
+              a.domains && a.domains.length > 0 ? a.domains[0] : ""
+            );
+            break;
+          case 'branch':
+          case 'department':
+            // Use applicant's branch/department
+            customData[prop.key] = selectedApplicantData.map(a => a.branch || a.department || "");
+            break;
+          case 'year':
+            // Use applicant's year
+            customData[prop.key] = selectedApplicantData.map(a => a.year ? a.year.toString() : "");
+            break;
+          case 'phone':
+            // Use applicant's phone
+            customData[prop.key] = selectedApplicantData.map(a => a.phone ? a.phone.toString() : "");
+            break;
+          case 'library_id':
+          case 'lib_id':
+          case 'libraryid':
+            // Use applicant's library ID
+            customData[prop.key] = selectedApplicantData.map(a => a.lib_id || a.libraryId || "");
+            break;
+          default:
+            // For any other custom variable, use the provided value for all recipients
+            customData[prop.key] = selectedApplicantData.map(() => prop.value || "");
+            break;
+        }
+      }
+    });
+
+    // Return payload according to API specification
+    return {
+      subject: customSubject,
+      emails: selectedApplicants,
+      body: customBody,
+      bcc: [], // Add admin emails if needed
+      custom: customData
+    };
+  };
+
+  const handleSend = async () => {
+    if (!customSubject.trim()) {
+      toast.error("Please enter email subject");
+      return;
+    }
+    if (!customBody.trim()) {
+      toast.error("Please enter email body");
+      return;
+    }
+    if (selectedApplicants.length === 0) {
+      toast.error("Please select at least one recipient");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const payload = generateEmailPayload();
+      
+      const response = await apiClient.sendEmail(payload);
+      
+      if (response.success) {
+        toast.success(
+          `Emails sent successfully! ${response.sent_count}/${response.total_recipients} delivered`
+        );
+        setSelectedApplicants([]);
+        if (!useCustomTemplate) {
+          setSelectedTemplate("");
+          setCustomSubject("");
+          setCustomBody("");
+          setTemplateProps([]);
+        }
+      } else {
+        toast.error(`Failed to send some emails. ${response.failed_count} failed.`);
+      }
+    } catch (error) {
+      console.error("Error sending emails:", error);
+      toast.error("Failed to send emails. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Get unique domains from applicants
+  const uniqueDomains = ["All", ...new Set(
+    applicants.flatMap(a => a.domains || [])
+  )];
+
+  // Get unique group numbers from applicants
+  const uniqueGroups = ["All", "unassigned", ...new Set(
+    applicants
+      .filter(a => a.groupNumber !== null && a.groupNumber !== undefined)
+      .map(a => a.groupNumber)
+      .sort((a, b) => a - b)
+  )];
+
+  // Round filter options
+  const roundOptions = [
+    { value: "All", label: "All Applicants" },
+    { value: "screening_selected", label: "Screening Selected" },
+    { value: "gd_scheduled", label: "GD Scheduled" },
+    { value: "gd_selected", label: "GD Selected" },
+    { value: "pi_selected", label: "PI Selected" },
+    { value: "task_completed", label: "Task Completed" },
+    { value: "shortlisted", label: "Shortlisted" }
+  ];
+
+  // Statistics calculations
+  const stats = {
+    total: filteredApplicants.length,
+    selected: selectedApplicants.length,
+    domains: uniqueDomains.length - 1, // Subtract 1 for "All"
+    templates: apiTemplates.length
+  };
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-gray-600 text-lg font-medium">Loading Applicants...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 sm:p-6 lg:p-8 flex flex-col max-w-7xl mx-auto">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="min-h-screen bg-gray-50 px-6 py-4"
+    >
       <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Bulk Mail</h1>
-
-      <div className="flex flex-col gap-4 sm:gap-6 mb-4 sm:mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-5">
-          <label className="block font-semibold mb-2 text-base sm:text-lg">
-            Select Template
-          </label>
-          <select
-            value={selectedTemplate}
-            onChange={(e) => setSelectedTemplate(e.target.value)}
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">-- Select Template --</option>
-            {templates.map((t) => (
-              <option key={t._id} value={t._id}>
-                {t.templateKey} - {t.subject}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sm:p-5">
-          <h2 className="font-semibold text-base sm:text-lg mb-3">Filter / Select by Domain</h2>
-          <div className="flex flex-wrap gap-2">
-            {uniqueDomains.map((domain) => (
-              <button
-                key={domain}
-                onClick={() => {
-                  setFilterDomain(domain);
-                  handleSelectDomain(domain);
-                }}
-                className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium transition text-sm sm:text-base ${
-                  filterDomain === domain
-                    ? "bg-blue-600 text-white shadow"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
+      
+      <div className="space-y-6">
+        {/* Header */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Bulk Email System</h1>
+                <p className="text-gray-600">Send personalized emails to applicants with advanced filtering</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {domain}
-              </button>
-            ))}
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowStats(!showStats)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>{showStats ? 'Hide' : 'Show'} Stats</span>
+              </motion.button>
+            </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8 flex-1 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-          <h2 className="text-lg sm:text-xl font-semibold">Student List</h2>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {selectedRecipients.length} selected
-          </span>
-        </div>
-
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full border-collapse text-sm lg:text-base">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700 text-left">
-                <th className="p-3">Select</th>
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Domain</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecipients.map((r, idx) => {
-                const isSent = sentRecipients.includes(r._id);
-                return (
-                  <tr
-                    key={r._id}
-                    className={`${
-                      isSent
-                        ? "bg-green-50 dark:bg-green-900/40"
-                        : idx % 2 === 0
-                        ? "bg-gray-50 dark:bg-gray-900/30"
-                        : "bg-white dark:bg-gray-800"
-                    } border-b border-gray-200 dark:border-gray-700`}
-                  >
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRecipients.includes(r._id)}
-                        onChange={() => handleRecipientToggle(r._id)}
-                        disabled={isSent}
-                        className="h-5 w-5 accent-blue-600 dark:accent-blue-500"
-                      />
-                    </td>
-                    <td className="p-3 font-medium">{r.name}</td>
-                    <td className="p-3 text-gray-600 dark:text-gray-400">
-                      {r.email}
-                    </td>
-                    <td className="p-3">{r.domain}</td>
-                    <td className="p-3">
-                      {isSent ? (
-                        <span className="flex items-center text-green-600 dark:text-green-400 font-semibold">
-                          <CheckCircle className="h-5 w-5 mr-1" /> Sent
-                        </span>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="md:hidden space-y-3 max-h-96 overflow-y-auto">
-          {filteredRecipients.map((r) => {
-            const isSent = sentRecipients.includes(r._id);
-            return (
-              <div
-                key={r._id}
-                className={`border rounded-lg p-4 ${
-                  isSent
-                    ? "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-700"
-                    : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                }`}
+        {/* Statistics Cards */}
+        <AnimatePresence>
+          {showStats && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="grid grid-cols-1 md:grid-cols-4 gap-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRecipients.includes(r._id)}
-                      onChange={() => handleRecipientToggle(r._id)}
-                      disabled={isSent}
-                      className="h-5 w-5 accent-blue-600 dark:accent-blue-500 mt-1"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-base">{r.name}</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {r.email}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Candidates</p>
+                    <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-blue-600">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  <span>All Applicants</span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Selected for Email</p>
+                    <p className="text-3xl font-bold text-green-600">{stats.selected}</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-green-600">
+                  <Mail className="w-4 h-4 mr-1" />
+                  <span>Ready to Send</span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Active Domains</p>
+                    <p className="text-3xl font-bold text-purple-600">{stats.domains}</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <Users className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-purple-600">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  <span>Domains Available</span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">API Templates</p>
+                    <p className="text-3xl font-bold text-orange-600">{stats.templates}</p>
+                  </div>
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <FileText className="w-6 h-6 text-orange-600" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-orange-600">
+                  <FileText className="w-4 h-4 mr-1" />
+                  <span>{loadingTemplates ? 'Loading...' : 'From API'}</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Filters Section */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h2 className="font-semibold text-lg mb-6 flex items-center">
+            <Users className="w-5 h-5 mr-2" />
+            Filter Applicants
+          </h2>
+          
+          {/* Domain Filter */}
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 mb-3">By Domain</h3>
+            <div className="flex flex-wrap gap-2">
+              {uniqueDomains.map((domain, index) => (
+                <motion.button
+                  key={domain}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setFilterDomain(domain)}
+                  className={`px-3 py-2 rounded-lg font-medium transition text-sm ${
+                    filterDomain === domain
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  }`}
+                >
+                  {domain} {domain !== "All" && `(${applicants.filter(a => a.domains?.includes(domain)).length})`}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Round Filter */}
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 mb-3">By Round Status</h3>
+            <div className="flex flex-wrap gap-2">
+              {roundOptions.map((round, index) => (
+                <motion.button
+                  key={round.value}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setFilterRound(round.value)}
+                  className={`px-3 py-2 rounded-lg font-medium transition text-sm ${
+                    filterRound === round.value
+                      ? "bg-green-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  }`}
+                >
+                  {round.label}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Group Filter */}
+          <div>
+            <h3 className="font-medium text-gray-700 mb-3">By Group Number</h3>
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value)}
+              className="w-full md:w-64 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+            >
+              {uniqueGroups.map((group) => (
+                <option key={group} value={group.toString()}>
+                  {group === "unassigned" 
+                    ? `Unassigned (${applicants.filter(a => !a.groupNumber).length})` 
+                    : group === "All" 
+                    ? "All Groups" 
+                    : `Group ${group} (${applicants.filter(a => a.groupNumber === group).length})`
+                  }
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Select All Button for Current Filter */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (selectedApplicants.length === filteredApplicants.length) {
+                  setSelectedApplicants([]);
+                } else {
+                  setSelectedApplicants(filteredApplicants.map(a => a.email));
+                }
+              }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              {selectedApplicants.length === filteredApplicants.length ? 'Deselect All' : 'Select All'} Filtered ({filteredApplicants.length})
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Email Template Section */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <h2 className="font-semibold text-lg mb-4 flex items-center">
+            <FileText className="w-5 h-5 mr-2" />
+            Email Template Configuration
+          </h2>
+          
+          {/* Template Type Toggle */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex space-x-4 mb-6"
+          >
+            <motion.label
+              whileHover={{ scale: 1.02 }}
+              className="flex items-center cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="templateType"
+                checked={!useCustomTemplate}
+                onChange={() => setUseCustomTemplate(false)}
+                className="mr-2"
+              />
+              <span className="font-medium">Saved Templates</span>
+            </motion.label>
+            <motion.label
+              whileHover={{ scale: 1.02 }}
+              className="flex items-center cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="templateType"
+                checked={useCustomTemplate}
+                onChange={() => setUseCustomTemplate(true)}
+                className="mr-2"
+              />
+              <span className="font-medium">Custom Template</span>
+            </motion.label>
+          </motion.div>
+
+          <AnimatePresence mode="wait">
+            {!useCustomTemplate ? (
+              /* Saved Templates */
+              <motion.div
+                key="saved"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block font-medium mb-2">Select API Template</label>
+                  {loadingTemplates ? (
+                    <div className="flex items-center space-x-2 p-3 border border-gray-300 rounded-lg">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"
+                      />
+                      <span className="text-gray-600">Loading templates...</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => handleTemplateSelect(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    >
+                      <option value="">-- Select Template --</option>
+                      {apiTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.subject || `Template ${template.id}`}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {!loadingTemplates && apiTemplates.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      No templates available. Create templates in the Mail Templates page.
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            ) : (
+              /* Custom Template */
+              <motion.div
+                key="custom"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <label className="block font-medium mb-2">Subject</label>
+                  <input
+                    type="text"
+                    value={customSubject}
+                    onChange={(e) => setCustomSubject(e.target.value)}
+                    placeholder="Enter email subject"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <label className="block font-medium mb-2">Body (HTML)</label>
+                  <textarea
+                    rows={8}
+                    value={customBody}
+                    onChange={(e) => setCustomBody(e.target.value)}
+                    placeholder="Enter HTML email body with variables like {{name}}, {{domain}}, etc."
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm transition-all"
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Template Properties */}
+          <AnimatePresence>
+            {(selectedTemplate || useCustomTemplate) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium">Template Variables</h3>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={addTemplateProp}
+                    className="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Variable
+                  </motion.button>
+                </div>
+                
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {templateProps.map((prop, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex space-x-2"
+                      >
+                        <input
+                          type="text"
+                          placeholder="Variable name (e.g., date)"
+                          value={prop.key}
+                          onChange={(e) => updateTemplateProp(index, 'key', e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Value for all recipients"
+                          value={prop.value}
+                          onChange={(e) => updateTemplateProp(index, 'value', e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => removeTemplateProp(index)}
+                          className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </motion.button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+                
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="mt-4 p-3 bg-blue-50 rounded-lg"
+                >
+                  <p className="text-sm text-blue-700">
+                    <strong>Auto-Mapped Variables:</strong> 
+                    <span className="block mt-1">
+                      • <code>name</code>, <code>email</code>, <code>phone</code> → From applicant profile<br/>
+                      • <code>domain</code>, <code>branch</code>, <code>year</code> → From applicant academic info<br/>
+                      • <code>date</code>, <code>time</code> → From GD datetime (if available)<br/>
+                      • <code>venue</code> → From GD venue (if available)<br/>
+                      • Custom variables → Use your provided values
+                    </span>
+                  </p>
+                  {selectedTemplate && (
+                    <div className="mt-3 p-2 bg-blue-100 rounded">
+                      <p className="text-sm text-blue-600">
+                        <strong>Template Custom Fields:</strong> {apiTemplates.find(t => t.id === selectedTemplate)?.custom?.join(', ') || 'None'}
                       </p>
                     </div>
-                  </div>
-                  {isSent && (
-                    <span className="flex items-center text-green-600 dark:text-green-400 font-semibold text-sm">
-                      <CheckCircle className="h-4 w-4 mr-1" /> Sent
-                    </span>
                   )}
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                    {r.domain}
-                  </span>
-                  {!isSent && (
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Pending
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      <button
-        onClick={handleSend}
-        disabled={loading}
-        className="px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed w-full sm:max-w-xs sm:mx-auto text-sm sm:text-base"
-      >
-        {loading ? "Sending..." : "Send Bulk Email"}
-      </button>
-    </div>
+          {/* Template Preview */}
+          <AnimatePresence>
+            {(customSubject || customBody) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-6"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  {showPreview ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                  {showPreview ? 'Hide' : 'Show'} Preview
+                </motion.button>
+                
+                <AnimatePresence>
+                  {showPreview && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50"
+                    >
+                      <h4 className="font-medium mb-2">Subject Preview:</h4>
+                      <p className="mb-4 p-2 bg-white rounded border">{customSubject}</p>
+                      <h4 className="font-medium mb-2">Body Preview:</h4>
+                      <div 
+                        className="p-4 bg-white rounded border min-h-[200px]"
+                        dangerouslySetInnerHTML={{ __html: customBody }}
+                      />
+                      {selectedTemplate && (
+                        <div className="mt-4 p-3 bg-gray-100 rounded">
+                          <h5 className="font-medium text-sm mb-2">Template Info:</h5>
+                          <p className="text-xs text-gray-600">
+                            Template ID: {selectedTemplate}<br/>
+                            Custom Fields: {apiTemplates.find(t => t.id === selectedTemplate)?.custom?.join(', ') || 'None'}<br/>
+                            Created: {apiTemplates.find(t => t.id === selectedTemplate)?.created_at ? 
+                              new Date(apiTemplates.find(t => t.id === selectedTemplate).created_at).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Debug Payload Preview */}
+          <AnimatePresence>
+            {(customSubject || customBody) && selectedApplicants.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-6"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowPayload(!showPayload)}
+                  className="flex items-center text-green-600 hover:text-green-700 font-medium transition-colors"
+                >
+                  <FileText className="w-4 h-4 mr-1" />
+                  {showPayload ? 'Hide' : 'Show'} API Payload
+                </motion.button>
+                
+                <AnimatePresence>
+                  {showPayload && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 p-4 border border-green-300 rounded-lg bg-green-50"
+                    >
+                      <h4 className="font-medium mb-2 text-green-800">Email API Payload:</h4>
+                      <pre className="text-xs bg-white p-3 rounded border overflow-x-auto text-gray-700">
+                        {JSON.stringify(generateEmailPayload(), null, 2)}
+                      </pre>
+                      <p className="text-xs text-green-600 mt-2">
+                        This is the exact payload that will be sent to the email API endpoint.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Send Button */}
+          <AnimatePresence>
+            {(selectedTemplate || useCustomTemplate) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-8 pt-6 border-t border-gray-200"
+              >
+                <motion.button
+                  onClick={handleSend}
+                  disabled={sending || selectedApplicants.length === 0 || !customSubject || !customBody}
+                  whileHover={{ 
+                    scale: sending || selectedApplicants.length === 0 || !customSubject || !customBody ? 1 : 1.02,
+                    boxShadow: "0 8px 25px rgba(59, 130, 246, 0.25)"
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full py-4 px-6 rounded-lg font-semibold transition-all flex items-center justify-center text-lg ${
+                    sending || selectedApplicants.length === 0 || !customSubject || !customBody
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  {sending ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                      />
+                      Sending Emails...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 mr-2" />
+                      Send Bulk Email ({selectedApplicants.length} recipients)
+                    </>
+                  )}
+                </motion.button>
+                
+                <AnimatePresence>
+                  {selectedApplicants.length === 0 && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="text-sm text-gray-500 text-center mt-2"
+                    >
+                      Please select at least one recipient to send emails
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Recipients List */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Applicants
+            </h2>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full"
+            >
+              {selectedApplicants.length} of {filteredApplicants.length} selected
+            </motion.div>
+          </div>
+
+          {refreshing ? (
+            <div className="text-center py-12">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"
+                />
+                <p className="text-gray-600 text-lg font-medium">Refreshing candidates data...</p>
+              </motion.div>
+            </div>
+          ) : filteredApplicants.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-12"
+            >
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Selected Applicants</h3>
+              <p className="text-gray-500">
+                {filterDomain === "All" 
+                  ? "No applicants have been selected yet."
+                  : `No applicants selected for ${filterDomain} domain.`
+                }
+              </p>
+            </motion.div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              <AnimatePresence>
+                {filteredApplicants.map((applicant, index) => (
+                  <motion.div
+                    key={applicant.email}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-6 hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <motion.input
+                          type="checkbox"
+                          checked={selectedApplicants.includes(applicant.email)}
+                          onChange={() => handleApplicantToggle(applicant.email)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="h-5 w-5 text-blue-600 rounded-md border-gray-300 focus:ring-blue-500 transition-transform"
+                        />
+                        
+                        <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                          <User className="w-6 h-6 text-blue-600" />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                          {/* Basic Info */}
+                          <div className="space-y-1">
+                            <div className="font-semibold text-gray-900">{applicant.name}</div>
+                            <div className="text-sm text-gray-500 flex items-center">
+                              <Mail className="w-3 h-3 mr-1" />
+                              {applicant.email}
+                            </div>
+                            <div className="text-sm text-gray-500">ID: {applicant.lib_id || 'N/A'}</div>
+                          </div>
+                          
+                          {/* Academic Info */}
+                          <div className="space-y-1">
+                            <div className="text-sm text-gray-500">Department</div>
+                            <div className="font-medium text-gray-900">{applicant.branch}</div>
+                            <div className="text-sm text-gray-500">
+                              Year {applicant.year} {applicant.groupNumber && `• Group ${applicant.groupNumber}`}
+                            </div>
+                          </div>
+                          
+                          {/* GD Info */}
+                          <div className="space-y-1">
+                            <div className="text-sm text-gray-500">GD Schedule</div>
+                            {applicant.gd?.datetime ? (
+                              <div className="space-y-1">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {new Date(applicant.gd.datetime).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}, {new Date(applicant.gd.datetime).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                                {applicant.gd.venue && (
+                                  <div className="text-xs text-gray-500">{applicant.gd.venue}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Not Scheduled
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Domain Preferences */}
+                          <div className="space-y-1">
+                            <div className="text-sm text-gray-500">Domain Preferences</div>
+                            {applicant.domains && applicant.domains.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {applicant.domains.slice(0, 2).map((domain, idx) => (
+                                  <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    {domain}
+                                  </span>
+                                ))}
+                                {applicant.domains.length > 2 && (
+                                  <span className="text-xs text-gray-500">+{applicant.domains.length - 2} more</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">No preferences</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Selection Status */}
+                      <div className="ml-4">
+                        {selectedApplicants.includes(applicant.email) ? (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Selected</span>
+                          </motion.div>
+                        ) : (
+                          <div className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                            Not Selected
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </motion.div>
   );
 };
 
