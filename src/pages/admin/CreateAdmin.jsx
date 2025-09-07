@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import useAuthStore from '../../store/authStore';
 import { ROLES } from '../../utils/rolePermissions';
+import { apiClient } from '../../utils/apiConfig';
 
 const CreateAdmin = () => {
   const location = useLocation();
@@ -130,54 +131,37 @@ const CreateAdmin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/admin/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-          role: formData.role
-        })
-      });
+      const adminData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role: formData.role
+      };
 
-      const data = await response.json();
+      const data = await apiClient.createAdmin(adminData);
 
-      if (!response.ok) {
-        if (response.status === 422) {
-          // Handle validation errors from backend
-          const backendErrors = {};
-          data.detail?.forEach(error => {
-            const field = error.loc[error.loc.length - 1];
-            backendErrors[field] = error.msg;
-          });
-          setErrors(backendErrors);
-          toast.error('Validation errors occurred');
-        } else {
-          throw new Error(data.detail || 'Failed to create admin');
-        }
-      } else {
-        setSuccess(true);
-        toast.success('Admin created successfully!');
-        
-        // Reset form after successful creation
-        setTimeout(() => {
-          setFormData({
-            name: '',
-            email: '',
-            password: '',
-            confirmPassword: '',
-            role: 'GDProctor'
-          });
-          setSuccess(false);
-          setPasswordStrength(0);
-        }, 2000);
-      }
+      setSuccess(true);
+      toast.success('Admin created successfully!');
+      
+      // Reset form after successful creation
+      setTimeout(() => {
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          role: 'GDProctor'
+        });
+        setSuccess(false);
+        setPasswordStrength(0);
+      }, 2000);
     } catch (error) {
-      toast.error(error.message || 'Network error occurred');
+      // Handle validation errors from backend
+      if (error.message.includes('422') || error.message.includes('validation')) {
+        toast.error('Validation errors occurred');
+      } else {
+        toast.error(error.message || 'Network error occurred');
+      }
     } finally {
       setLoading(false);
     }

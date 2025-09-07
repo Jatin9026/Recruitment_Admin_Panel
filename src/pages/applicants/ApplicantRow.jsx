@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { apiClient } from "../../utils/apiConfig";
 
 const useApplicantStore = create((set, get) => ({
   applicants: [],
@@ -52,18 +53,7 @@ const useApplicantStore = create((set, get) => ({
     };
 
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://rec-backend-z2qa.onrender.com/api/users/bulk/create-rounds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error(`Failed with status ${res.status}`);
-      const data = await res.json();
+      const data = await apiClient.bulkCreateRounds(payload);
 
       // update local state
       const updatedApplicants = applicants.map((app) =>
@@ -91,15 +81,7 @@ const useApplicantStore = create((set, get) => ({
 
   fetchApplicants: async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://rec-backend-z2qa.onrender.com/api/users/get", {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-      });
-      if (!res.ok) throw new Error(`Failed with status ${res.status}`);
-      const data = await res.json();
+      const data = await apiClient.getUsers();
 
       const mapped = data.map((u) => ({
         id: u._id,
@@ -110,7 +92,6 @@ const useApplicantStore = create((set, get) => ({
         libraryId: u.lib_id,
         department: u.branch,
         group: u.groupNumber,
-        status: "Pending",
         appliedAt: u.createdAt || new Date().toISOString(),
         slot: null,
       }));
