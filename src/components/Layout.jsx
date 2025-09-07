@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import Sidebar from './Sidebar'; 
@@ -8,6 +8,7 @@ function Layout() {
   const { user, logout } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -45,6 +46,11 @@ function Layout() {
   const getMainContentMargin = () => {
     if (isMobile) return 0;
     return sidebarCollapsed ? 80 : 280;
+  };
+
+  const handleProfileClick = () => {
+    navigate('/admin/profile');
+    handleMenuClick();
   };
 
   return (
@@ -100,7 +106,10 @@ function Layout() {
                     </button> */}
 
                     {/* User Profile */}
-                    <div className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg px-3 py-2">
+                    <div 
+                      className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg cursor-pointer px-3 py-2"
+                      onClick={handleProfileClick}
+                    >
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">
                           {user.name?.charAt(0).toUpperCase() || 'U'}

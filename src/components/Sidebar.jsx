@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import { ROLES, ROUTE_PERMISSIONS } from "../utils/rolePermissions";
@@ -46,14 +46,15 @@ const menuItems = [
       { path: "/interview/events", label: "Events" },
     ],
   },
-  { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
   { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
-  { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
+  { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
+  // { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
   { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -105,6 +106,11 @@ export default function Sidebar() {
     }
   };
 
+  const handleProfileClick = () => {
+    navigate('/admin/profile');
+    handleMenuClick();
+  };
+
   const userHasAccess = (roles) => {
     if (!user?.role) return false;
     return roles.includes(user.role);
@@ -149,20 +155,26 @@ export default function Sidebar() {
           </button>
           {!isCollapsed && isDropdownOpen && (
             <div className="ml-8 mt-2 space-y-1">
-              {item.children.map((child) => (
-                <Link
-                  key={child.path}
-                  to={child.path}
-                  onClick={handleMenuClick}
-                  className={`block px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
-                    location.pathname === child.path
-                      ? 'bg-blue-100 text-blue-700 font-medium shadow-sm border-l-2 border-blue-500'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-200'
-                  }`}
-                >
-                  {child.label}
-                </Link>
-              ))}
+              {item.children.map((child) => {
+                // Check if child has its own role restrictions
+                const hasChildAccess = child.roles ? userHasAccess(child.roles) : true;
+                if (!hasChildAccess) return null;
+                
+                return (
+                  <Link
+                    key={child.path}
+                    to={child.path}
+                    onClick={handleMenuClick}
+                    className={`block px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
+                      location.pathname === child.path
+                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm border-l-2 border-blue-500'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent hover:border-gray-200'
+                    }`}
+                  >
+                    {child.label}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -293,11 +305,10 @@ export default function Sidebar() {
             isCollapsed ? 'p-2' : 'p-4'
           }`}>
             {!isCollapsed ? (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-colors" onClick={handleProfileClick}>
                 <div 
-                  className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md cursor-pointer ring-2 ring-white"
-                  title={`${user.name} (${user.role})`}
-                  onClick={toggleCollapse}
+                  className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-white"
+                  title={`${user.name} (${user.role}) - Click to view profile`}
                 >
                   <span className="text-white font-semibold text-lg">
                     {user.name?.charAt(0).toUpperCase() || 'U'}
@@ -316,8 +327,8 @@ export default function Sidebar() {
                 <div className="relative">
                   <div 
                     className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200 ring-2 ring-white"
-                    title={`${user.name} (${user.role}) - Click to expand`}
-                    onClick={toggleCollapse}
+                    title={`${user.name} (${user.role}) - Click to view profile`}
+                    onClick={handleProfileClick}
                   >
                     <span className="text-white font-semibold text-lg">
                       {user.name?.charAt(0).toUpperCase() || 'U'}

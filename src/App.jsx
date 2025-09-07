@@ -10,7 +10,7 @@ import { Toaster } from "sonner";
 // Page imports
 import Dashboard from "./pages/dashboard/Dashboard";
 import ApplicantsList from "./pages/applicants/ApplicantsList";
-import CheckInPage from "./pages/attendance/CheckIn";
+// import CheckInPage from "./pages/attendance/CheckIn";
 import GroupsList from "./pages/groups/GroupList";
 import PendingScreening from "./pages/screening/PendingScreening";
 import ScreeningEvaluate from "./pages/screening/ScreeningEvaluate";
@@ -20,11 +20,12 @@ import Graphics from "./pages/interview/Graphics";
 import Cr from "./pages/interview/Cr";
 import Pr from "./pages/interview/Pr";
 import Tech from "./pages/interview/Tech";
-import ManageSlots from "./pages/slots/ManageSlots";
+// import ManageSlots from "./pages/slots/ManageSlots";
 import MailTemplate from "./pages/mail/MailTemplate";
 import BulkMail from "./pages/mail/BulkMail";
-import TaskList from "./pages/tasks/TaskList";
+// import TaskList from "./pages/tasks/TaskList";
 import CreateAdmin from "./pages/admin/CreateAdmin";
+import AdminProfile from "./pages/admin/AdminProfile";
 import LoginPage from "./pages/login/Login";
 
 // ==================== PROTECTED ROUTE COMPONENT ====================
@@ -206,13 +207,18 @@ function App() {
               } />
 
               {/* Task Management */}
-              <Route path="tasks/list" element={
+              {/* <Route path="tasks/list" element={
                 <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.tasks}>
                   <TaskList />
                 </RoleProtectedRoute>
-              } />
+              } /> */}
 
               {/* Admin Management */}
+              <Route path="admin/profile" element={
+                <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.dashboard}>
+                  <AdminProfile />
+                </RoleProtectedRoute>
+              } />
               <Route path="admin/create" element={
                 <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.createAdmin}>
                   <CreateAdmin />

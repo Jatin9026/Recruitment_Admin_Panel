@@ -46,10 +46,20 @@ export const API_ENDPOINTS = {
   // Groups
   GROUP_STATISTICS: '/api/users/groups/statistics',
   
+  // Email
+  SEND_EMAIL: '/api/emails/send',
+  GET_EMAIL_TEMPLATES: '/api/emails/templates',
+  SAVE_EMAIL_TEMPLATE: '/api/emails/templates',
+  
   // Admin
   ADMIN_LOGIN: '/api/admin/login',
   ADMIN_CREATE: '/api/admin/create',
-  ADMIN_ME: '/api/admin/me'
+  ADMIN_ME: '/api/admin/me',
+  ADMIN_UPDATE: '/api/admin/update',
+  
+  // Settings
+  SETTINGS_GET: '/api/settings/',
+  SETTINGS_TOGGLE_RESULT: '/api/settings/toggle-result'
 };
 
 // API client class
@@ -189,6 +199,43 @@ export class ApiClient {
 
   async getAdminInfo() {
     return this.request(API_ENDPOINTS.ADMIN_ME);
+  }
+
+  async updateAdminProfile(profileData) {
+    return this.request(API_ENDPOINTS.ADMIN_UPDATE, {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+  }
+
+  // Settings operations
+  async getSettings() {
+    return this.request(API_ENDPOINTS.SETTINGS_GET);
+  }
+
+  async toggleResultStatus() {
+    return this.request(API_ENDPOINTS.SETTINGS_TOGGLE_RESULT, {
+      method: 'POST'
+    });
+  }
+
+  // Email operations
+  async sendEmail(emailData) {
+    return this.request(API_ENDPOINTS.SEND_EMAIL, {
+      method: 'POST',
+      body: JSON.stringify(emailData)
+    });
+  }
+
+  async getEmailTemplates() {
+    return this.request(API_ENDPOINTS.GET_EMAIL_TEMPLATES);
+  }
+
+  async saveEmailTemplate(templateData) {
+    return this.request(API_ENDPOINTS.SAVE_EMAIL_TEMPLATE, {
+      method: 'POST',
+      body: JSON.stringify(templateData)
+    });
   }
 }
 
