@@ -238,10 +238,11 @@ export default function Sidebar() {
             <>
               <div className="flex items-center space-x-3 flex-1">
               <img 
-  src="https://firebasestorage.googleapis.com/v0/b/endevaour-2023.appspot.com/o/webassets%2Fwhite%20logo%20br.png?alt=media&token=50662b36-d955-4f24-985c-bd73a9101e01" 
-  alt="Recruitment Logo"
-  className="w-10 h-10 object-contain rounded-lg shadow-md"
-/>
+                // src="https://firebasestorage.googleapis.com/v0/b/endevaour-2023.appspot.com/o/webassets%2Fwhite%20logo%20br.png?alt=media&token=50662b36-d955-4f24-985c-bd73a9101e01" 
+                src="/logo.png"
+                alt="Recruitment Logo"
+                className="w-10 h-10 object-contain rounded-lg shadow-md"
+              />
 
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Recruitment</h2>
