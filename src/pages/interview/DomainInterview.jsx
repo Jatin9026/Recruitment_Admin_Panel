@@ -163,12 +163,49 @@ const DomainInterviewBase = ({ domain }) => {
     try {
       setSubmitting(true);
       
-      // API call to update PI status using apiClient
+      // Construct proper status value
+      let statusValue;
+      if (decision === "select") {
+        statusValue = "selected";
+      } else if (decision === "unsure") {
+        statusValue = "unsure";
+      } else if (decision === "reject") {
+        statusValue = "rejected";
+      } else {
+        statusValue = "pending"; // fallback
+      }
+
+      // Construct proper remarks
+      let remarksValue = String(feedback || ""); // Ensure it's always a string
+      if (remarksValue.trim() === "") {
+        if (decision === "select") {
+          remarksValue = `Selected for ${domain} domain`;
+        } else if (decision === "unsure") {
+          remarksValue = "Unsure, Task Submission will be required.";
+        } else if (decision === "reject") {
+          remarksValue = `Rejected for ${domain} domain`;
+        } else {
+          remarksValue = "No feedback provided";
+        }
+      }
+
+      // Validate the data before sending
+      const validStatuses = ['selected', 'rejected', 'unsure', 'scheduled', 'pending', 'absent'];
+      if (!validStatuses.includes(statusValue)) {
+        console.error('Invalid status:', statusValue);
+        toast.error('Invalid status selected');
+        return;
+      }
+
+      // Ensure all fields are strings and properly formatted
       const piData = {
-        status: decision === "select" ? "selected" : decision === "unsure" ? "unsure" : "rejected",
-        datetime: new Date().toISOString(),
-        remarks: feedback || `${decision === "select" ? "Selected" : decision === "unsure" ? "Unsure, " : "Rejected"} ${decision === "unsure" ? "Task Submission will be required." : `for ${domain} domain`}`
+        status: String(statusValue),
+        datetime: new Date().toISOString(), // Format: 2025-09-18T16:17:18.689Z
+        remarks: remarksValue // Already ensured to be a string above
       };
+
+      console.log('PI Update Request Body:', piData);
+      console.log('Email:', evaluatingApplicant.email);
 
       const updatedApplicant = await apiClient.updateUserPI(evaluatingApplicant.email, piData);
 
@@ -190,7 +227,23 @@ const DomainInterviewBase = ({ domain }) => {
       handleCloseEvaluation();
     } catch (error) {
       console.error("Error submitting evaluation:", error);
-      toast.error("Failed to submit evaluation. Please try again.");
+      
+      // More detailed error handling
+      let errorMessage = "Failed to submit evaluation. Please try again.";
+      
+      if (error.message) {
+        if (error.message.includes('422')) {
+          errorMessage = "Validation error: Please check the data format. Make sure all fields are filled correctly.";
+        } else if (error.message.includes('401')) {
+          errorMessage = "Authentication error: Please log in again.";
+        } else if (error.message.includes('403')) {
+          errorMessage = "Permission denied: You don't have permission to perform this action.";
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
