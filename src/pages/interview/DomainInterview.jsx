@@ -156,7 +156,7 @@ const DomainInterviewBase = ({ domain }) => {
 
   const handleSubmitEvaluation = async () => {
     if (!decision) {
-      toast.error("Please select either 'Select' or 'Reject'");
+      toast.error("Please select either 'Select' or 'Unsure' or 'Reject'");
       return;
     }
 
@@ -165,9 +165,9 @@ const DomainInterviewBase = ({ domain }) => {
       
       // API call to update PI status using apiClient
       const piData = {
-        status: decision === "select" ? "selected" : "rejected",
+        status: decision === "select" ? "selected" : decision === "unsure" ? "unsure" : "rejected",
         datetime: new Date().toISOString(),
-        remarks: feedback || `${decision === "select" ? "Selected" : "Rejected"} for ${domain} domain`
+        remarks: feedback || `${decision === "select" ? "Selected" : decision === "unsure" ? "Unsure, " : "Rejected"} ${decision === "unsure" ? "Task Submission will be required." : `for ${domain} domain`}`
       };
 
       const updatedApplicant = await apiClient.updateUserPI(evaluatingApplicant.email, piData);
@@ -722,6 +722,39 @@ const DomainInterviewBase = ({ domain }) => {
                     </div>
                     {decision === "select" && (
                       <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
+                    )}
+                  </label>
+  
+                  <label className={`relative flex items-center p-4 border rounded-xl cursor-pointer transition-all ${
+                    decision === "unsure" 
+                      ? 'border-yellow-500 bg-yellow-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="unsure"
+                      checked={decision === "unsure"}
+                      onChange={(e) => setDecision(e.target.value)}
+                      className="sr-only"
+                    />
+                    <div className="flex items-center">
+                      <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
+                        decision === "unsure" 
+                          ? 'border-yellow-500 bg-yellow-500' 
+                          : 'border-gray-300'
+                      }`}>
+                        {decision === "unsure" && (
+                          <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-yellow-700">Unsure About Candidate</div>
+                        <div className="text-xs text-yellow-600">Task Submission will be required.</div>
+                      </div>
+                    </div>
+                    {decision === "unsure" && (
+                      <CheckCircle className="w-5 h-5 text-yellow-500 ml-auto" />
                     )}
                   </label>
 

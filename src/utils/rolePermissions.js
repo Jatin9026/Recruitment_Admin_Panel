@@ -16,7 +16,7 @@ export const ROUTE_PERMISSIONS = {
   applicants: [ROLES.SUPER_ADMIN, ROLES.GD_PROCTOR],
   
   // Attendance Management
-//   attendance: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  attendance: [ROLES.SUPER_ADMIN, ROLES.GD_PROCTOR, ROLES.INTERVIEWER, ROLES.ADMIN],
   
   // Groups Management (GD)
   groups: [ROLES.SUPER_ADMIN, ROLES.GD_PROCTOR],
@@ -28,7 +28,7 @@ export const ROUTE_PERMISSIONS = {
   interviews: [ROLES.SUPER_ADMIN, ROLES.INTERVIEWER],
   
   // Slots Management
-//   slots: [ROLES.SUPER_ADMIN],
+  slots: [ROLES.SUPER_ADMIN],
   
   // Email Management
   mailTemplates: [ROLES.SUPER_ADMIN],

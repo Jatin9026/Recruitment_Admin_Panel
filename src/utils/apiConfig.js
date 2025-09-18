@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   BULK_UPDATE_ROUNDS: '/api/users/bulk/update-rounds',
   BULK_MARK_ABSENT: '/api/users/bulk/mark-absent',
   BULK_CHANGE_GROUP: '/api/users/bulk/change-group',
+  BULK_ASSIGN_SLOTS: '/api/users/bulk-assign-slots',
   
   // Screening
   UPDATE_SCREENING: '/api/users/{email}/screening',
@@ -42,6 +43,9 @@ export const API_ENDPOINTS = {
   UPDATE_TASK: '/api/users/{email}/task',
   UPDATE_TASK_STATUS: '/api/users/{email}/task-status',
   SHORTLIST_USERS: '/api/users/shortlist',
+  
+  // Attendance
+  UPDATE_ATTENDANCE: '/api/users/{email}/attendance',
   
   // Groups
   GROUP_STATISTICS: '/api/users/groups/statistics',
@@ -130,6 +134,21 @@ export class ApiClient {
     return this.request(API_ENDPOINTS.BULK_CHANGE_GROUP, {
       method: 'PUT',
       body: JSON.stringify({ emails, targetGroupNumber })
+    });
+  }
+
+  async bulkAssignSlots(emails, assignedSlot) {
+    return this.request(API_ENDPOINTS.BULK_ASSIGN_SLOTS, {
+      method: 'POST',
+      body: JSON.stringify({ emails, assignedSlot })
+    });
+  }
+
+  // Attendance operations
+  async updateUserAttendance(email, isPresent) {
+    return this.request(API_ENDPOINTS.UPDATE_ATTENDANCE.replace('{email}', email), {
+      method: 'PATCH',
+      body: JSON.stringify({ isPresent })
     });
   }
 

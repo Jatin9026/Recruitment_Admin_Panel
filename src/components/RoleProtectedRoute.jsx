@@ -5,8 +5,8 @@ import useAuthStore from '../store/authStore';
 const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, isAuthenticated, isInitialized } = useAuthStore();
 
-  // Show loading while auth is initializing
-  if (!isInitialized) {
+  // Show loading while auth is initializing OR user data is not yet available
+  if (!isInitialized || (isAuthenticated && !user)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
