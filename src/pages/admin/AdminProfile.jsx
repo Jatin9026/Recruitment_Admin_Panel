@@ -23,6 +23,7 @@ const AdminProfile = () => {
   const [resultStatus, setResultStatus] = useState(null);
   const [isToggling, setIsToggling] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Fetch current result status
   useEffect(() => {
@@ -46,10 +47,9 @@ const AdminProfile = () => {
     }
   }, [user]);
 
-  // Toggle result status
-  const handleToggleResult = async () => {
+  // Perform the actual toggle
+  const doToggleResult = async () => {
     if (isToggling) return;
-    
     setIsToggling(true);
     try {
       const response = await apiClient.toggleResultStatus();
@@ -65,6 +65,16 @@ const AdminProfile = () => {
     } finally {
       setIsToggling(false);
     }
+  };
+
+  // Open modal when publishing, toggle directly when hiding
+  const handleToggleResult = () => {
+    if (isToggling) return;
+    if (resultStatus === false) {
+      setShowConfirm(true);
+      return;
+    }
+    doToggleResult();
   };
 
   const getRoleDisplay = (role) => {
@@ -374,6 +384,58 @@ const AdminProfile = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => !isToggling && setShowConfirm(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6"
+          >
+            <h3 className="text-lg font-semibold text-gray-900">Publish Results?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              This will make the results visible to all candidates. Do you want to continue?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={isToggling}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowConfirm(false);
+                  await doToggleResult();
+                }}
+                disabled={isToggling}
+                className={`px-4 py-2 rounded-lg text-white bg-green-600 hover:bg-green-700 flex items-center gap-2 disabled:opacity-50`}
+              >
+                {isToggling ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                    />
+                    Publishing...
+                  </>
+                ) : (
+                  'Publish'
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
