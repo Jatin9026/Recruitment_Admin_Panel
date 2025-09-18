@@ -18,10 +18,12 @@ import {
   ChevronDown,
   ChevronRight,
   UserPlus,
+  UserCheck,
 } from "lucide-react";
 
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
+  { path: "/slots/bulk-assign", label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
   // {
   //   label: "Slots",
   //   icon: Clock,
@@ -30,7 +32,8 @@ const menuItems = [
   //     { path: "/slot", label: "Manage Slots" },
   //   ],
   // },
-  { path: "/applicants/list", label: "Applicants", icon: Users, roles: ROUTE_PERMISSIONS.applicants },
+  { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.slots },
+  // { path: "/applicants/list", label: "Applicants", icon: Users, roles: ROUTE_PERMISSIONS.applicants },
   // { path: "/attendance/check-in", label: "Attendance", icon: ClipboardList, roles: ROUTE_PERMISSIONS.attendance },
   { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
   { path: "/screening", label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },

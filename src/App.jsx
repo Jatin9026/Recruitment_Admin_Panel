@@ -27,6 +27,8 @@ import BulkMail from "./pages/mail/BulkMail";
 import CreateAdmin from "./pages/admin/CreateAdmin";
 import AdminProfile from "./pages/admin/AdminProfile";
 import LoginPage from "./pages/login/Login";
+import BulkSlotAssignment from './pages/slots/BulkSlotAssignment';
+import SlotAttendance from './pages/attendance/SlotAttendance';
 
 // ==================== PROTECTED ROUTE COMPONENT ====================
 function ProtectedRoute({ children }) {
@@ -122,12 +124,26 @@ function App() {
                 </RoleProtectedRoute>
               } />
 
+              {/* Slots Management */}
+              <Route path="slots/bulk-assign" element={
+                <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.slots}>
+                  <BulkSlotAssignment />
+                </RoleProtectedRoute>
+              } />
+
+              {/* Slots Attendance */}
+              <Route path="slots/attendance" element={
+                <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.attendance}>
+                  <SlotAttendance />
+                </RoleProtectedRoute>
+              } />
+
               {/* Applicants Management */}
-              <Route path="applicants/list" element={
+              {/* <Route path="applicants/list" element={
                 <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.applicants}>
                   <ApplicantsList />
                 </RoleProtectedRoute>
-              } />
+              } /> */}
 
               {/* Attendance Management */}
               {/* <Route path="attendance/check-in" element={
