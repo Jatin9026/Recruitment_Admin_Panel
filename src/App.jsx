@@ -26,6 +26,7 @@ import BulkMail from "./pages/mail/BulkMail";
 // import TaskList from "./pages/tasks/TaskList";
 import CreateAdmin from "./pages/admin/CreateAdmin";
 import AdminProfile from "./pages/admin/AdminProfile";
+import AdminLogs from "./pages/admin/AdminLogs";
 import LoginPage from "./pages/login/Login";
 import BulkSlotAssignment from './pages/slots/BulkSlotAssignment';
 import SlotAttendance from './pages/attendance/SlotAttendance';
@@ -238,6 +239,11 @@ function App() {
               <Route path="admin/create" element={
                 <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.createAdmin}>
                   <CreateAdmin />
+                </RoleProtectedRoute>
+              } />
+              <Route path="admin/logs" element={
+                <RoleProtectedRoute allowedRoles={ROUTE_PERMISSIONS.adminLogs}>
+                  <AdminLogs />
                 </RoleProtectedRoute>
               } />
 

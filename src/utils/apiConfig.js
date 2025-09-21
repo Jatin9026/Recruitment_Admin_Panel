@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
   ADMIN_CREATE: '/api/admin/create',
   ADMIN_ME: '/api/admin/me',
   ADMIN_UPDATE: '/api/admin/update',
+  ADMIN_LOGS: '/api/logs/',
   
   // Settings
   SETTINGS_GET: '/api/settings/',
@@ -225,6 +226,17 @@ export class ApiClient {
       method: 'PUT',
       body: JSON.stringify(profileData)
     });
+  }
+
+  async getAdminLogs(params = {}) {
+    const { limit = 50, skip = 0, admin_email, status } = params;
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+      skip: skip.toString(),
+      ...(admin_email && { admin_email }),
+      ...(status && { status })
+    });
+    return this.request(`${API_ENDPOINTS.ADMIN_LOGS}?${queryParams}`);
   }
 
   // Settings operations

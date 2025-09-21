@@ -114,11 +114,20 @@ const ScreeningEvaluate = () => {
   }, [applicants, id, navigate, loading]);
 
   const handleDomainToggle = (domain) => {
-    setSelectedDomains(prev => 
-      prev.includes(domain) 
-        ? prev.filter(d => d !== domain)
-        : [...prev, domain]
-    );
+    setSelectedDomains(prev => {
+      if (prev.includes(domain)) {
+        // Remove domain if already selected
+        return prev.filter(d => d !== domain);
+      } else {
+        // Add domain only if less than 2 are selected
+        if (prev.length < 2) {
+          return [...prev, domain];
+        } else {
+          toast.error("You can only select exactly 2 domains");
+          return prev;
+        }
+      }
+    });
   };
   
   useEffect(() => {
@@ -131,8 +140,13 @@ const ScreeningEvaluate = () => {
       return;
     }
 
-    if (decision === "selected" && selectedDomains.length === 0) {
-      toast.error("Please select at least one domain for selected candidates");
+    if (!remarks.trim()) {
+      toast.error("Please provide remarks - this field is required");
+      return;
+    }
+
+    if (decision === "selected" && selectedDomains.length !== 2) {
+      toast.error("Please select exactly 2 domains for selected candidates");
       return;
     }
 
@@ -142,7 +156,7 @@ const ScreeningEvaluate = () => {
       const screeningData = {
         status: decision,
         datetime: new Date().toISOString(),
-        remarks: remarks || (decision === "selected" ? "Selected for next round" : "Not selected")
+        remarks: remarks
       };
 
       // Add domains only if candidate is selected
@@ -416,8 +430,15 @@ const ScreeningEvaluate = () => {
                 className="mb-6"
               >
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Select Domains for Interview *
+                  Select Exactly 2 Domains for Interview *
                 </label>
+                <div className="mb-3">
+                  <span className={`text-sm font-medium ${
+                    selectedDomains.length === 2 ? "text-green-600" : "text-gray-500"
+                  }`}>
+                    {selectedDomains.length}/2 domains selected
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {availableDomains.map((domain) => (
                     <motion.div
@@ -427,6 +448,8 @@ const ScreeningEvaluate = () => {
                       className={`cursor-pointer rounded-lg border-2 p-3 transition-all ${
                         selectedDomains.includes(domain)
                           ? "border-blue-500 bg-blue-50"
+                          : selectedDomains.length >= 2
+                          ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
                           : "border-gray-300 hover:border-gray-400"
                       }`}
                       onClick={() => handleDomainToggle(domain)}
@@ -447,7 +470,7 @@ const ScreeningEvaluate = () => {
                   ))}
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  Select domains where this candidate will be interviewed
+                  You must select exactly 2 domains for the candidate's interview rounds
                 </p>
               </motion.div>
             )}
@@ -456,15 +479,23 @@ const ScreeningEvaluate = () => {
           {/* Remarks */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Remarks & Feedback
+              Remarks & Feedback *
             </label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                remarks.trim() ? "border-gray-300" : "border-red-300 bg-red-50"
+              }`}
               rows={4}
-              placeholder="Add any additional comments or feedback about the candidate..."
+              placeholder="Please provide detailed remarks and feedback about the candidate (required)"
+              required
             />
+            {!remarks.trim() && (
+              <p className="text-sm text-red-600 mt-1">
+                Remarks are required for all evaluations
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -477,7 +508,7 @@ const ScreeningEvaluate = () => {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!decision || submitting}
+              disabled={!decision || !remarks.trim() || (decision === "selected" && selectedDomains.length !== 2) || submitting}
               className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center ${
                 decision === "selected"
                   ? "bg-green-600 hover:bg-green-700 text-white"

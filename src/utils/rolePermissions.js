@@ -38,7 +38,8 @@ export const ROUTE_PERMISSIONS = {
 //   tasks: [ROLES.SUPER_ADMIN],
   
   // Admin Management
-  createAdmin: [ROLES.SUPER_ADMIN]
+  createAdmin: [ROLES.SUPER_ADMIN],
+  adminLogs: [ROLES.SUPER_ADMIN]
 };
 
 // Helper function to check if user has access to a specific feature

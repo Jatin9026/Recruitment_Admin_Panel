@@ -176,7 +176,7 @@ const DomainInterviewBase = ({ domain }) => {
       }
 
       // Construct proper remarks
-      let remarksValue = String(feedback || ""); // Ensure it's always a string
+      let remarksValue = String(""); // Ensure it's always a string
       if (remarksValue.trim() === "") {
         if (decision === "select") {
           remarksValue = `Selected for ${domain} domain`;
@@ -735,6 +735,30 @@ const DomainInterviewBase = ({ domain }) => {
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Screening Remarks */}
+                {evaluatingApplicant.screening?.remarks && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />
+                      <span className="font-medium text-blue-800 text-sm">Screening Feedback</span>
+                    </div>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      {evaluatingApplicant.screening.remarks}
+                    </p>
+                    {evaluatingApplicant.screening.datetime && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        Screened on: {new Date(evaluatingApplicant.screening.datetime).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

@@ -13,10 +13,12 @@ import {
   Settings,
   UserCheck,
   Plus,
-  Minus
+  Minus,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '../../utils/apiConfig';
+import ApplicantDetailModal from '../../components/ApplicantDetailModal';
 
 const BulkSlotAssignment = () => {
   const [applicants, setApplicants] = useState([]);
@@ -30,6 +32,10 @@ const BulkSlotAssignment = () => {
   const [slotEndDateTime, setSlotEndDateTime] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [showSlotModal, setShowSlotModal] = useState(false);
+  
+  // Applicant Detail Modal
+  const [selectedApplicantForModal, setSelectedApplicantForModal] = useState(null);
+  const [showApplicantModal, setShowApplicantModal] = useState(false);
 
   // Statistics
   const [stats, setStats] = useState({
@@ -196,6 +202,16 @@ const BulkSlotAssignment = () => {
     } catch {
       return null;
     }
+  };
+
+  const handleViewApplicant = (applicant) => {
+    setSelectedApplicantForModal(applicant);
+    setShowApplicantModal(true);
+  };
+
+  const closeApplicantModal = () => {
+    setShowApplicantModal(false);
+    setSelectedApplicantForModal(null);
   };
 
   if (loading) {
@@ -410,6 +426,9 @@ const BulkSlotAssignment = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assigned Slot
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -478,6 +497,15 @@ const BulkSlotAssignment = () => {
                           ) : (
                             <span className="text-gray-400 text-sm">Not assigned</span>
                           )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleViewApplicant(applicant)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </button>
                         </td>
                       </motion.tr>
                     );
@@ -581,6 +609,14 @@ const BulkSlotAssignment = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Applicant Detail Modal */}
+      {showApplicantModal && selectedApplicantForModal && (
+        <ApplicantDetailModal
+          applicant={selectedApplicantForModal}
+          onClose={closeApplicantModal}
+        />
+      )}
     </div>
   );
 };

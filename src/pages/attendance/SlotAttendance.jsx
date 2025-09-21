@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '../../utils/apiConfig';
+import ApplicantDetailModal from '../../components/ApplicantDetailModal';
 import { 
   autoScheduler, 
   startAutoScheduling, 
@@ -63,6 +64,21 @@ const SlotAttendance = () => {
     lastBatchTime: null
   });
   const [showSchedulerConfig, setShowSchedulerConfig] = useState(false);
+
+  // Modal state
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modal functions
+  const openModal = (applicant) => {
+    setSelectedApplicant(applicant);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedApplicant(null);
+    setIsModalOpen(false);
+  };
 
   useEffect(() => {
     fetchApplicants();
@@ -725,7 +741,7 @@ const SlotAttendance = () => {
                                 )}
                                 
                                 <div className="flex items-start justify-between">
-                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pr-20">
+                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pr-32">
                                     <div className="space-y-2">
                                       <div className="flex items-center space-x-2">
                                         <User className="w-4 h-4 text-blue-600" />
@@ -769,7 +785,20 @@ const SlotAttendance = () => {
                                     </div>
                                   </div>
                                   
-                                  <div className="absolute bottom-4 right-4">
+                                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                                    {/* View Button */}
+                                    <motion.button
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => openModal(applicant)}
+                                      className="px-3 py-2 rounded-lg transition-colors bg-purple-100 text-purple-600 hover:bg-purple-200 shadow-sm border border-purple-300 flex items-center gap-1 text-xs font-medium"
+                                      title="View details"
+                                    >
+                                      <User className="w-3 h-3" />
+                                      View
+                                    </motion.button>
+
+                                    {/* Attendance Button */}
                                     {applicant.isPresent === true ? (
                                       <div className="p-2 rounded-lg bg-green-100 text-green-600 shadow-sm border border-green-300 cursor-not-allowed" title="Already marked present">
                                         <CheckCircle2 className="w-4 h-4" />
@@ -805,6 +834,13 @@ const SlotAttendance = () => {
           )}
         </div>
       </div>
+
+      {/* Applicant Detail Modal */}
+      <ApplicantDetailModal
+        applicant={selectedApplicant}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
     </div>
   );
 };
