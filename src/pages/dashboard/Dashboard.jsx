@@ -229,7 +229,7 @@ const Dashboard = () => {
               <motion.div
                 className={`h-2 rounded-full ${colors.progress}`}
                 initial={{ width: 0 }}
-                animate={{ width: `${completionRate}%` }}
+                animate={{ width: `${Math.min(completionRate, 100)}%` }}
                 transition={{ delay: 0.5, duration: 1 }}
               />
             </div>
