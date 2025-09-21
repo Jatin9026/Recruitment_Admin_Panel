@@ -28,8 +28,7 @@ import {
   ArrowRight,
   TrendingUp,
   BarChart3,
-  Calendar,
-  UserMinus
+  Calendar
 } from "lucide-react";
 
 export default function GroupManager() {
@@ -37,7 +36,6 @@ export default function GroupManager() {
   const location = useLocation();
   const [groupedApplicants, setGroupedApplicants] = useState({});
   const [rejectedApplicants, setRejectedApplicants] = useState(new Set());
-  const [absentApplicants, setAbsentApplicants] = useState(new Set());
   const [expandedGroups, setExpandedGroups] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,40 +186,6 @@ export default function GroupManager() {
     setRejectedApplicants(newRejected);
   };
 
-  const toggleApplicantAbsent = (applicantEmail) => {
-    console.log('Toggling absent for applicant email:', applicantEmail);
-    console.log('Current absent applicants:', Array.from(absentApplicants));
-    
-    const newAbsent = new Set(absentApplicants);
-    const applicant = applicants.find(a => a.email === applicantEmail);
-    
-    if (!applicant) {
-      console.error('Applicant not found:', applicantEmail);
-      toast.error('Applicant not found');
-      return;
-    }
-    
-    if (newAbsent.has(applicantEmail)) {
-      newAbsent.delete(applicantEmail);
-      toast.success(`${applicant.name} restored to selection pool`);
-      console.log('Restored applicant:', applicant.name);
-    } else {
-      newAbsent.add(applicantEmail);
-      toast(`${applicant.name} marked as absent`, {
-        icon: '⚠️',
-        style: {
-          borderLeft: '4px solid #f59e0b',
-          backgroundColor: '#fef3c7',
-          color: '#92400e'
-        }
-      });
-      console.log('Marked as absent:', applicant.name);
-    }
-    
-    console.log('New absent applicants:', Array.from(newAbsent));
-    setAbsentApplicants(newAbsent);
-  };
-
   const rejectAllInGroup = (groupApplicants) => {
     const newRejected = new Set(rejectedApplicants);
     groupApplicants.forEach(applicant => {
@@ -231,39 +195,21 @@ export default function GroupManager() {
     toast.error(`Rejected ${groupApplicants.length} applicants`);
   };
 
-  const markAllAbsentInGroup = (groupApplicants) => {
-    const newAbsent = new Set(absentApplicants);
-    groupApplicants.forEach(applicant => {
-      newAbsent.add(applicant.email);
-    });
-    setAbsentApplicants(newAbsent);
-    toast(`Marked ${groupApplicants.length} applicants as absent`, {
-      icon: '⚠️',
-      style: {
-        borderLeft: '4px solid #f59e0b',
-        backgroundColor: '#fef3c7',
-        color: '#92400e'
-      }
-    });
-  };
-
-  // Check if all applicants in a group have been processed (selected, rejected, or absent)
+  // Check if all applicants in a group have been processed (selected, rejected)
   const isGroupComplete = (groupApplicants) => {
     return groupApplicants.every(applicant => {
       // Check local states first
       const isLocallyRejected = rejectedApplicants.has(applicant.email);
-      const isLocallyAbsent = absentApplicants.has(applicant.email);
       
       // Check if applicant has been processed via API (gd.status exists)
       // scheduled means GD is scheduled, NOT that they were selected
       const hasGDStatus = applicant.gd && (
         applicant.gd.status === 'selected' || 
-        applicant.gd.status === 'rejected' ||
-        applicant.gd.status === 'absent'
+        applicant.gd.status === 'rejected'
       );
       
-      // Applicant is complete if locally marked for rejection/absent or has GD status
-      return isLocallyRejected || isLocallyAbsent || hasGDStatus;
+      // Applicant is complete if locally marked for rejection or has GD status
+      return isLocallyRejected || hasGDStatus;
     });
   };
 
@@ -271,16 +217,14 @@ export default function GroupManager() {
   const getGroupStatus = (groupApplicants) => {
     const totalApplicants = groupApplicants.length;
     const locallyRejected = groupApplicants.filter(a => rejectedApplicants.has(a.email)).length;
-    const locallyAbsent = groupApplicants.filter(a => absentApplicants.has(a.email)).length;
     const processedViaAPI = groupApplicants.filter(a => 
-      a.gd && (a.gd.status === 'selected' || a.gd.status === 'rejected' || a.gd.status === 'absent')
+      a.gd && (a.gd.status === 'selected' || a.gd.status === 'rejected')
     ).length;
     
     // Calculate unique processed applicants (avoid double counting)
     const processedApplicants = groupApplicants.filter(a => 
       rejectedApplicants.has(a.email) || 
-      absentApplicants.has(a.email) ||
-      (a.gd && (a.gd.status === 'selected' || a.gd.status === 'rejected' || a.gd.status === 'absent'))
+      (a.gd && (a.gd.status === 'selected' || a.gd.status === 'rejected'))
     ).length;
     
     if (processedApplicants === totalApplicants && totalApplicants > 0) {
@@ -294,12 +238,11 @@ export default function GroupManager() {
 
   const updateGroupStatus = async (groupKey, groupApplicants) => {
     const groupRejected = groupApplicants.filter(a => rejectedApplicants.has(a.email));
-    const groupAbsent = groupApplicants.filter(a => absentApplicants.has(a.email));
     const groupSelected = groupApplicants.filter(a => 
-      !rejectedApplicants.has(a.email) && !absentApplicants.has(a.email)
+      !rejectedApplicants.has(a.email)
     );
 
-    if (groupRejected.length === 0 && groupSelected.length === 0 && groupAbsent.length === 0) {
+    if (groupRejected.length === 0 && groupSelected.length === 0) {
       toast.error("No applicants in this group");
       return;
     }
@@ -307,20 +250,6 @@ export default function GroupManager() {
     try {
       setProcessingGroup(groupKey);
       
-      // Update absent applicants in this group using the bulk mark absent API
-      if (groupAbsent.length > 0) {
-        const absentEmails = groupAbsent.map(a => a.email);
-        await apiClient.bulkMarkAbsent(absentEmails);
-        toast(`${absentEmails.length} applicants marked as absent in Group ${groupKey === 'unassigned' ? 'Unassigned' : groupKey}`, {
-          icon: '⚠️',
-          style: {
-            borderLeft: '4px solid #f59e0b',
-            backgroundColor: '#fef3c7',
-            color: '#92400e'
-          }
-        });
-      }
-
       // Update rejected applicants in this group
       if (groupRejected.length > 0) {
         const rejectedEmails = groupRejected.map(a => a.email);
@@ -372,11 +301,6 @@ export default function GroupManager() {
         groupApplicantEmails.forEach(email => newSet.delete(email));
         return newSet;
       });
-      setAbsentApplicants(prev => {
-        const newSet = new Set(prev);
-        groupApplicantEmails.forEach(email => newSet.delete(email));
-        return newSet;
-      });
       
       await loadApplicants();
       
@@ -390,7 +314,6 @@ export default function GroupManager() {
 
   const clearAllSelections = () => {
     setRejectedApplicants(new Set());
-    setAbsentApplicants(new Set());
     toast.info("All selections cleared");
   };
 
@@ -426,7 +349,6 @@ export default function GroupManager() {
     const grouped = applicants.filter(a => a.groupNumber).length;
     const unassigned = applicants.filter(a => !a.groupNumber).length;
     const rejected = rejectedApplicants.size;
-    const absent = absentApplicants.size;
     const groups = new Set(applicants.filter(a => a.groupNumber).map(a => a.groupNumber)).size;
     
     // Group completion statistics
@@ -446,7 +368,6 @@ export default function GroupManager() {
       grouped, 
       unassigned, 
       rejected, 
-      absent,
       groups,
       completeGroups,
       inProgressGroups,
@@ -540,7 +461,7 @@ export default function GroupManager() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
           >
             {[
               { label: "Total", value: stats.total, icon: User, color: "blue" },
@@ -548,8 +469,7 @@ export default function GroupManager() {
               { label: "Complete Groups", value: stats.completeGroups, icon: CheckCircle, color: "green" },
               { label: "In Progress", value: stats.inProgressGroups, icon: Clock, color: "yellow" },
               { label: "Pending Groups", value: stats.pendingGroups, icon: XCircle, color: "gray" },
-              { label: "Marked for Rejection", value: stats.rejected, icon: UserX, color: "red" },
-              { label: "Marked as Absent", value: stats.absent, icon: UserMinus, color: "orange" }
+              { label: "Marked for Rejection", value: stats.rejected, icon: UserX, color: "red" }
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -717,9 +637,8 @@ export default function GroupManager() {
                         <span>{groupApplicants.length} applicants</span>
                         <span>•</span>
                         <span>{groupApplicants.filter(a => 
-                          !rejectedApplicants.has(a.email) && 
-                          !absentApplicants.has(a.email) &&
-                          !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected' || a.gd.status === 'absent'))
+                          !rejectedApplicants.has(a.email) &&
+                          !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected'))
                         ).length} for selection</span>
                         <span>•</span>
                         <span>{groupApplicants.filter(a => 
@@ -730,11 +649,6 @@ export default function GroupManager() {
                           rejectedApplicants.has(a.email) || 
                           (a.gd && a.gd.status === 'rejected')
                         ).length} rejected</span>
-                        <span>•</span>
-                        <span>{groupApplicants.filter(a => 
-                          absentApplicants.has(a.email) || 
-                          (a.gd && a.gd.status === 'absent')
-                        ).length} absent</span>
                       </div>
                     </div>
                   </div>
@@ -748,16 +662,6 @@ export default function GroupManager() {
                       className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                     >
                       Reject All
-                    </button>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        markAllAbsentInGroup(groupApplicants);
-                      }}
-                      className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
-                    >
-                      Mark All Absent
                     </button>
                     
                     <button
@@ -819,17 +723,15 @@ export default function GroupManager() {
                         <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
                           <UserCheck className="w-4 h-4 mr-2 text-green-600" />
                           Candidates for Selection ({groupApplicants.filter(a => 
-                            !rejectedApplicants.has(a.email) && 
-                            !absentApplicants.has(a.email) &&
-                            !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected' || a.gd.status === 'absent'))
+                            !rejectedApplicants.has(a.email) &&
+                            !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected'))
                           ).length})
                         </h4>
                         <div className="space-y-4">
                           {groupApplicants
                             .filter(a => 
-                              !rejectedApplicants.has(a.email) && 
-                              !absentApplicants.has(a.email) &&
-                              !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected' || a.gd.status === 'absent'))
+                              !rejectedApplicants.has(a.email) &&
+                              !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected'))
                             )
                             .map((applicant, applicantIndex) => (
                             <motion.div
@@ -906,7 +808,7 @@ export default function GroupManager() {
                                 </div>
                                 
                                 <div className="absolute bottom-4 right-4">
-                                  {applicant.gd && (applicant.gd.status === 'selected' || applicant.gd.status === 'rejected' || applicant.gd.status === 'absent') ? (
+                                  {applicant.gd && (applicant.gd.status === 'selected' || applicant.gd.status === 'rejected') ? (
                                     <div className="p-2 rounded-lg bg-gray-100 text-gray-400 shadow-sm border border-gray-300 cursor-not-allowed" title="Status already finalized via API">
                                       <UserX className="w-4 h-4" />
                                     </div>
@@ -924,19 +826,6 @@ export default function GroupManager() {
                                       >
                                         <UserX className="w-4 h-4" />
                                       </motion.button>
-                                      
-                                      <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => {
-                                          console.log('Mark Absent button clicked for:', applicant.name, 'Email:', applicant.email);
-                                          toggleApplicantAbsent(applicant.email);
-                                        }}
-                                        className="p-2 rounded-lg transition-colors bg-orange-100 text-orange-600 hover:bg-orange-200 shadow-sm border border-orange-300"
-                                        title="Mark as Absent"
-                                      >
-                                        <UserMinus className="w-4 h-4" />
-                                      </motion.button>
                                     </div>
                                   )}
                                 </div>
@@ -945,9 +834,8 @@ export default function GroupManager() {
                           ))}
                           
                           {groupApplicants.filter(a => 
-                            !rejectedApplicants.has(a.email) && 
-                            !absentApplicants.has(a.email) &&
-                            !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected' || a.gd.status === 'absent'))
+                            !rejectedApplicants.has(a.email) &&
+                            !(a.gd && (a.gd.status === 'rejected' || a.gd.status === 'selected'))
                           ).length === 0 && (
                             <div className="text-center py-8 text-gray-500">
                               <UserCheck className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -1135,119 +1023,6 @@ export default function GroupManager() {
                                         onClick={() => {
                                           console.log('Restore button clicked for:', applicant.name, 'Email:', applicant.email);
                                           toggleApplicantRejection(applicant.email);
-                                        }}
-                                        className="p-2 rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 shadow-sm border border-green-300"
-                                        title="Restore to Selection Pool"
-                                      >
-                                        <RotateCcw className="w-4 h-4" />
-                                      </motion.button>
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Absent Applicants Section */}
-                      {groupApplicants.filter(a => 
-                        absentApplicants.has(a.email) || 
-                        (a.gd && a.gd.status === 'absent')
-                      ).length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-orange-700 mb-4 flex items-center">
-                            <UserMinus className="w-4 h-4 mr-2 text-orange-600" />
-                            Absent Candidates ({groupApplicants.filter(a => 
-                              absentApplicants.has(a.email) || 
-                              (a.gd && a.gd.status === 'absent')
-                            ).length})
-                          </h4>
-                          <div className="space-y-4">
-                            {groupApplicants
-                              .filter(a => 
-                                absentApplicants.has(a.email) || 
-                                (a.gd && a.gd.status === 'absent')
-                              )
-                              .map((applicant, applicantIndex) => (
-                              <motion.div
-                                key={`absent-${applicant.email}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: applicantIndex * 0.05 }}
-                                className="relative bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-all duration-200"
-                              >
-                                {/* Absent overlay effect */}
-                                <div className="absolute top-2 right-2">
-                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-500 text-white shadow-sm">
-                                    <UserMinus className="w-3 h-3 mr-1" />
-                                    ABSENT
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pr-20">
-                                    <div className="space-y-2">
-                                      <div className="flex items-center space-x-2">
-                                        <User className="w-4 h-4 text-orange-500" />
-                                        <span className="font-semibold text-orange-900 line-through decoration-2">{applicant.name}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <Mail className="w-4 h-4 text-orange-400" />
-                                        <span className="text-sm text-orange-700">{applicant.email}</span>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2 opacity-75">
-                                      <div className="flex items-center space-x-2">
-                                        <GraduationCap className="w-4 h-4 text-orange-400" />
-                                        <span className="text-sm text-orange-700">{applicant.department}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <Award className="w-4 h-4 text-orange-400" />
-                                        <span className="text-sm text-orange-700">Year {applicant.year}</span>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2 opacity-75">
-                                      <div className="flex items-center space-x-2">
-                                        <Phone className="w-4 h-4 text-orange-400" />
-                                        <span className="text-sm text-orange-700">{applicant.phone}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <MapPin className="w-4 h-4 text-orange-400" />
-                                        <span className="text-sm text-orange-700">{applicant.libraryId}</span>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                      <div className="flex flex-col space-y-1">
-                                        <span className="text-xs text-gray-600 font-medium">GD Status</span>
-                                        {applicant.gd && applicant.gd.status === 'absent' ? (
-                                          <span className="text-sm text-orange-700 font-medium">
-                                            absent
-                                          </span>
-                                        ) : (
-                                          <span className="text-sm text-orange-600 font-medium">
-                                            marked as absent
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="absolute bottom-4 right-4">
-                                    {applicant.gd && applicant.gd.status === 'absent' ? (
-                                      <div className="p-2 rounded-lg bg-gray-100 text-gray-400 shadow-sm border border-gray-300 cursor-not-allowed" title="Final absent status cannot be changed">
-                                        <RotateCcw className="w-4 h-4" />
-                                      </div>
-                                    ) : (
-                                      <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => {
-                                          console.log('Restore button clicked for:', applicant.name, 'Email:', applicant.email);
-                                          toggleApplicantAbsent(applicant.email);
                                         }}
                                         className="p-2 rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 shadow-sm border border-green-300"
                                         title="Restore to Selection Pool"

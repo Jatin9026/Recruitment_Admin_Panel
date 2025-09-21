@@ -19,6 +19,7 @@ import {
   ChevronRight,
   UserPlus,
   UserCheck,
+  Activity,
 } from "lucide-react";
 
 const menuItems = [
@@ -53,6 +54,7 @@ const menuItems = [
   { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
   // { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
   { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
+  { path: "/admin/logs", label: "Admin Logs", icon: Activity, roles: ROUTE_PERMISSIONS.adminLogs },
 ];
 
 export default function Sidebar() {

@@ -62,7 +62,6 @@ const Dashboard = () => {
     const total = applicants.length;
     const gdSelected = applicants.filter(a => a.gd?.status === "selected").length;
     const gdRejected = applicants.filter(a => a.gd?.status === "rejected").length;
-    const gdAbsent = applicants.filter(a => a.gd?.status === "absent").length;
     const gdScheduled = applicants.filter(a => a.gd?.status === "scheduled").length;
     const screeningSelected = applicants.filter(a => a.screening?.status === "selected").length;
     const screeningRejected = applicants.filter(a => a.screening?.status === "rejected").length;
@@ -87,7 +86,6 @@ const Dashboard = () => {
       total,
       gdSelected,
       gdRejected,
-      gdAbsent,
       gdScheduled,
       screeningSelected,
       screeningRejected,
@@ -363,7 +361,6 @@ const Dashboard = () => {
             stage="Group Discussion"
             selected={stats.gdSelected || 0}
             rejected={stats.gdRejected || 0}
-            absent={stats.gdAbsent || 0}
             scheduled={stats.gdScheduled || 0}
             total={stats.total || 0}
             colorScheme="blue"
