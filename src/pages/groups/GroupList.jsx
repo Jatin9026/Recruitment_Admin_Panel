@@ -564,9 +564,9 @@ export default function GroupManager() {
           Object.entries(groupedApplicants).map(([groupKey, groupApplicants], index) => (
             <motion.div
               key={groupKey}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              initial={false}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
             >
               {/* Group Header */}
@@ -736,9 +736,9 @@ export default function GroupManager() {
                             .map((applicant, applicantIndex) => (
                             <motion.div
                               key={`selection-${applicant.email}`}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: applicantIndex * 0.05 }}
+                              initial={false}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.1 }}
                               className="relative bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border-l-4 border-green-500 hover:shadow-md transition-all duration-200"
                             >
                               {/* Selected indicator - only show for actually selected applicants */}
@@ -862,9 +862,9 @@ export default function GroupManager() {
                               .map((applicant, applicantIndex) => (
                               <motion.div
                                 key={`processed-${applicant.email}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: applicantIndex * 0.05 }}
+                                initial={false}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.1 }}
                                 className="relative bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border-l-4 border-green-500 opacity-75"
                               >
                                 <div className="absolute top-2 right-2">
@@ -947,9 +947,9 @@ export default function GroupManager() {
                               .map((applicant, applicantIndex) => (
                               <motion.div
                                 key={`rejected-${applicant.email}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: applicantIndex * 0.05 }}
+                                initial={false}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.1 }}
                                 className="relative bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4 border-l-4 border-red-500 shadow-sm hover:shadow-md transition-all duration-200"
                               >
                                 {/* Rejected overlay effect */}
