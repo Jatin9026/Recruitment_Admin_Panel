@@ -604,14 +604,15 @@ const MailTemplate = () => {
             </motion.div>
           ) : (
             <div className="space-y-4">
-              <AnimatePresence>
                 {templates.map((template, index) => (
                   <motion.div
                     key={template.id || index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: index * 0.05 }}
+                    initial={false}
+                    animate={{ opacity: 1 }}
+                    transition={{ 
+                      duration: 0.1,
+                      ease: "easeOut"
+                    }}
                     className="border border-gray-200 rounded-xl p-6 hover:shadow-md hover:border-gray-300 transition-all duration-200 group"
                   >
                     <div className="flex items-start justify-between">
@@ -678,7 +679,6 @@ const MailTemplate = () => {
                     </div>
                   </motion.div>
                 ))}
-              </AnimatePresence>
             </div>
           )}
         </motion.div>

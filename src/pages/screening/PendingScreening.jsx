@@ -465,14 +465,15 @@ const PendingScreening = () => {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              <AnimatePresence>
                 {filteredApplicants.map((applicant, index) => (
                   <motion.div
                     key={applicant.email}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: index * 0.05 }}
+                    initial={false}
+                    animate={{ opacity: 1 }}
+                    transition={{ 
+                      duration: 0.1,
+                      ease: "easeOut"
+                    }}
                     className="p-6 hover:bg-gray-50 transition-colors group"
                   >
                     <div className="flex items-center justify-between">
@@ -583,7 +584,6 @@ const PendingScreening = () => {
                     )}
                   </motion.div>
                 ))}
-              </AnimatePresence>
             </div>
           )}
         </motion.div>
