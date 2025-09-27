@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, 
@@ -22,7 +22,6 @@ import ApplicantDetailModal from '../../components/ApplicantDetailModal';
 
 const BulkSlotAssignment = () => {
   const [applicants, setApplicants] = useState([]);
-  const [filteredApplicants, setFilteredApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,26 +36,59 @@ const BulkSlotAssignment = () => {
   const [selectedApplicantForModal, setSelectedApplicantForModal] = useState(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
 
-  // Statistics
-  const [stats, setStats] = useState({
-    total: 0,
-    assigned: 0,
-    unassigned: 0
-  });
-
   useEffect(() => {
     fetchApplicants();
   }, []);
 
-  useEffect(() => {
-    filterApplicants();
+  // Optimized filtering using useMemo for immediate response
+  const filteredApplicants = useMemo(() => {
+    if (!applicants.length) return [];
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    let filtered = applicants.filter(applicant => {
+      // Search filter - check if search term is empty to avoid unnecessary processing
+      if (searchLower) {
+        const matchesSearch = 
+          (applicant.name && applicant.name.toLowerCase().includes(searchLower)) ||
+          (applicant.email && applicant.email.toLowerCase().includes(searchLower)) ||
+          (applicant.lib_id && applicant.lib_id.toString().toLowerCase().includes(searchLower));
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      switch (filterType) {
+        case 'assigned':
+          return Boolean(applicant.assignedSlot);
+        case 'unassigned':
+          return !applicant.assignedSlot;
+        default: // 'all'
+          return true;
+      }
+    });
+
+    // Sort to show unassigned students first for better UX
+    return filtered.sort((a, b) => {
+      // If one has assigned slot and other doesn't, prioritize unassigned
+      if (!a.assignedSlot && b.assignedSlot) return -1;
+      if (a.assignedSlot && !b.assignedSlot) return 1;
+      
+      // If both have same assignment status, sort by name
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [applicants, searchTerm, filterType]);
 
-  useEffect(() => {
-    calculateStats();
+  // Calculate stats using useMemo for performance
+  const stats = useMemo(() => {
+    const total = applicants.length;
+    const assigned = applicants.filter(a => a.assignedSlot).length;
+    const unassigned = total - assigned;
+    
+    return { total, assigned, unassigned };
   }, [applicants]);
 
-  const fetchApplicants = async () => {
+  const fetchApplicants = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiClient.getUsers();
@@ -67,45 +99,9 @@ const BulkSlotAssignment = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterApplicants = () => {
-    let filtered = applicants.filter(applicant => {
-      const matchesSearch = 
-        applicant.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        applicant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        applicant.lib_id?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesFilter = 
-        filterType === 'all' ? true :
-        filterType === 'assigned' ? applicant.assignedSlot :
-        filterType === 'unassigned' ? !applicant.assignedSlot : true;
-
-      return matchesSearch && matchesFilter;
-    });
-
-    // Sort to show unassigned students first
-    filtered.sort((a, b) => {
-      // If one has assigned slot and other doesn't, prioritize unassigned
-      if (!a.assignedSlot && b.assignedSlot) return -1;
-      if (a.assignedSlot && !b.assignedSlot) return 1;
-      
-      // If both have same assignment status, sort by name
-      return (a.name || '').localeCompare(b.name || '');
-    });
-
-    setFilteredApplicants(filtered);
-  };
-
-  const calculateStats = () => {
-    const total = applicants.length;
-    const assigned = applicants.filter(a => a.assignedSlot).length;
-    const unassigned = total - assigned;
-    
-    setStats({ total, assigned, unassigned });
-  };
-
-  const handleSelectApplicant = (applicant) => {
+  const handleSelectApplicant = useCallback((applicant) => {
     if (applicant.assignedSlot) {
       toast.warning('This applicant already has an assigned slot');
       return;
@@ -119,19 +115,19 @@ const BulkSlotAssignment = () => {
         return [...prev, applicant];
       }
     });
-  };
+  }, []);
 
-  const handleSelectUnassigned = (count) => {
+  const handleSelectUnassigned = useCallback((count) => {
     const unassignedApplicants = filteredApplicants.filter(a => !a.assignedSlot);
     const toSelect = unassignedApplicants.slice(0, count);
     setSelectedApplicants(toSelect);
     toast.success(`Selected ${toSelect.length} unassigned applicants`);
-  };
+  }, [filteredApplicants]);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedApplicants([]);
     toast.info('Selection cleared');
-  };
+  }, []);
 
   const formatSlotTime = (startTime, endTime) => {
     const start = new Date(startTime);
@@ -245,19 +241,7 @@ const BulkSlotAssignment = () => {
               </p>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3">
-              {selectedApplicants.length > 0 && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  onClick={() => setShowSlotModal(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-                >
-                  <Calendar className="w-4 h-4" />
-                  Assign Slots ({selectedApplicants.length})
-                </motion.button>
-              )}
-              
+            <div className="flex flex-wrap items-center gap-3">             
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -326,14 +310,23 @@ const BulkSlotAssignment = () => {
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-5 h-5 absolute left-3 top-2/4 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by name, email, or library ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear search"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {/* Filter */}
@@ -394,12 +387,36 @@ const BulkSlotAssignment = () => {
           className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
         >
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Applicants ({filteredApplicants.length})
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Applicants ({filteredApplicants.length})
+                {(searchTerm || filterType !== 'all') && (
+                  <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Filtered
+                  </span>
+                )}
+              </h2>
+              
+              {selectedApplicants.length > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={() => setShowSlotModal(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Assign Slots ({selectedApplicants.length})
+                </motion.button>
+              )}
+            </div>
             {selectedApplicants.length > 0 && (
-              <p className="text-sm text-blue-600 mt-1">
+              <p className="text-sm text-blue-600 mt-2">
                 {selectedApplicants.length} applicant(s) selected for slot assignment
+              </p>
+            )}
+            {searchTerm && (
+              <p className="text-sm text-gray-500 mt-1">
+                Showing results for "{searchTerm}"
               </p>
             )}
           </div>
@@ -432,20 +449,21 @@ const BulkSlotAssignment = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                <AnimatePresence>
-                  {filteredApplicants.map((applicant, index) => {
-                    const isSelected = selectedApplicants.find(a => a.id === applicant.id);
-                    const slotInfo = parseSlotTime(applicant.assignedSlot);
-                    
-                    return (
-                      <motion.tr
-                        key={applicant.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''} ${applicant.assignedSlot ? 'opacity-75' : ''}`}
-                      >
+                {filteredApplicants.map((applicant, index) => {
+                  const isSelected = selectedApplicants.find(a => a.id === applicant.id);
+                  const slotInfo = parseSlotTime(applicant.assignedSlot);
+                  
+                  return (
+                    <motion.tr
+                      key={applicant.id}
+                      initial={false}
+                      animate={{ opacity: 1 }}
+                      transition={{ 
+                        duration: 0.1,
+                        ease: "easeOut"
+                      }}
+                      className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''} ${applicant.assignedSlot ? 'opacity-75' : ''}`}
+                    >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
@@ -474,7 +492,7 @@ const BulkSlotAssignment = () => {
                           <div className="text-sm text-gray-900">{applicant.email}</div>
                           <div className="text-sm text-gray-500">{applicant.phone || 'N/A'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-break-spaces">
                           <div className="text-sm text-gray-900">Year {applicant.year || 'N/A'}</div>
                           <div className="text-sm text-gray-500">{applicant.branch || 'N/A'}</div>
                         </td>
@@ -510,7 +528,6 @@ const BulkSlotAssignment = () => {
                       </motion.tr>
                     );
                   })}
-                </AnimatePresence>
               </tbody>
             </table>
           </div>

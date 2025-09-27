@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target } from "lucide-react";
+import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target, Search } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { apiClient } from "../../utils/apiConfig";
 
@@ -10,6 +10,7 @@ const BulkMail = () => {
   const [applicants, setApplicants] = useState([]);
   const [filteredApplicants, setFilteredApplicants] = useState([]);
   const [selectedApplicants, setSelectedApplicants] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterDomain, setFilterDomain] = useState("All");
   const [filterRound, setFilterRound] = useState("All");
   const [filterGroup, setFilterGroup] = useState("All");
@@ -17,6 +18,11 @@ const BulkMail = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
   const [showStats, setShowStats] = useState(true);
+  
+  // Batch processing state
+  const [batchSize, setBatchSize] = useState(20);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, processed: 0, failed: 0 });
+  const [showBatchSettings, setShowBatchSettings] = useState(false);
   
   // Email template state
   const [apiTemplates, setApiTemplates] = useState([]);
@@ -102,9 +108,19 @@ const BulkMail = () => {
     }
   };
 
-  // Filter applicants by domain, round, and group
+  // Filter applicants by search, domain, round, and group
   useEffect(() => {
     let filtered = applicants;
+    
+    // Filter by search query (name, email, or lib_id)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(applicant => 
+        (applicant.name && applicant.name.toLowerCase().includes(query)) ||
+        (applicant.email && applicant.email.toLowerCase().includes(query)) ||
+        (applicant.lib_id && applicant.lib_id.toString().toLowerCase().includes(query))
+      );
+    }
     
     // Filter by domain
     if (filterDomain !== "All") {
@@ -149,7 +165,7 @@ const BulkMail = () => {
     }
     
     setFilteredApplicants(filtered);
-  }, [applicants, filterDomain, filterRound, filterGroup]);
+  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup]);
 
   const handleApplicantToggle = (email) => {
     setSelectedApplicants(prev =>
@@ -319,6 +335,108 @@ const BulkMail = () => {
     };
   };
 
+  // Generate batch payloads for processing emails in smaller chunks
+  const generateBatchPayloads = (batchSize) => {
+    const batches = [];
+    const allEmails = selectedApplicants;
+    
+    // Split emails into batches
+    for (let i = 0; i < allEmails.length; i += batchSize) {
+      const batchEmails = allEmails.slice(i, i + batchSize);
+      
+      // Get applicant data for this batch
+      const batchApplicantData = batchEmails.map(email => 
+        filteredApplicants.find(a => a.email === email)
+      ).filter(Boolean);
+
+      // Create custom data for this batch
+      const customData = {};
+      templateProps.forEach(prop => {
+        if (prop.key) {
+          switch (prop.key.toLowerCase()) {
+            case 'date':
+            case 'datetime':
+              customData[prop.key] = batchApplicantData.map(a => {
+                if (a.gd && a.gd.datetime) {
+                  const date = new Date(a.gd.datetime);
+                  const year = date.getUTCFullYear();
+                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(date.getUTCDate()).padStart(2, '0');
+                  return `${month}/${day}/${year}`;
+                }
+                return prop.value || "";
+              });
+              break;
+            case 'time':
+              customData[prop.key] = batchApplicantData.map(a => {
+                if (a.gd && a.gd.datetime) {
+                  const date = new Date(a.gd.datetime);
+                  let hours = date.getUTCHours();
+                  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                  const ampm = hours >= 12 ? 'PM' : 'AM';
+                  hours = hours % 12;
+                  hours = hours ? hours : 12;
+                  const hoursStr = String(hours).padStart(2, '0');
+                  return `${hoursStr}:${minutes} ${ampm}`;
+                }
+                return prop.value || "";
+              });
+              break;
+            case 'venue':
+            case 'location':
+              customData[prop.key] = batchApplicantData.map(a => {
+                if (a.gd && a.gd.venue) {
+                  return a.gd.venue;
+                }
+                return prop.value || "";
+              });
+              break;
+            case 'name':
+              customData[prop.key] = batchApplicantData.map(a => a.name || "");
+              break;
+            case 'email':
+              customData[prop.key] = batchApplicantData.map(a => a.email || "");
+              break;
+            case 'domain':
+              customData[prop.key] = batchApplicantData.map(a => 
+                a.domains && a.domains.length > 0 ? a.domains[0] : ""
+              );
+              break;
+            case 'branch':
+            case 'department':
+              customData[prop.key] = batchApplicantData.map(a => a.branch || a.department || "");
+              break;
+            case 'year':
+              customData[prop.key] = batchApplicantData.map(a => a.year ? a.year.toString() : "");
+              break;
+            case 'phone':
+              customData[prop.key] = batchApplicantData.map(a => a.phone ? a.phone.toString() : "");
+              break;
+            case 'library_id':
+            case 'lib_id':
+            case 'libraryid':
+              customData[prop.key] = batchApplicantData.map(a => a.lib_id || a.libraryId || "");
+              break;
+            default:
+              customData[prop.key] = batchApplicantData.map(() => prop.value || "");
+              break;
+          }
+        }
+      });
+
+      // Create batch payload
+      batches.push({
+        subject: customSubject,
+        emails: batchEmails,
+        body: customBody,
+        bcc: [],
+        custom: customData
+      });
+    }
+
+    return batches;
+  };
+
   const handleSend = async () => {
     if (!customSubject.trim()) {
       toast.error("Please enter email subject");
@@ -335,14 +453,116 @@ const BulkMail = () => {
 
     try {
       setSending(true);
-      const payload = generateEmailPayload();
       
-      const response = await apiClient.sendEmail(payload);
+      // Calculate batch information
+      const totalEmails = selectedApplicants.length;
+      const batches = generateBatchPayloads(batchSize);
+      const totalBatches = batches.length;
       
-      if (response.success) {
+      // Initialize progress tracking
+      setBatchProgress({
+        current: 0,
+        total: totalBatches,
+        processed: 0,
+        failed: 0
+      });
+
+      let totalProcessed = 0;
+      let totalFailed = 0;
+      const failedBatches = [];
+
+      toast.success(`Starting batch processing: ${totalEmails} emails in ${totalBatches} batches of ${batchSize}`);
+
+      // Process batches sequentially with delay
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const batchNumber = i + 1;
+        
+        // Update progress
+        setBatchProgress(prev => ({
+          ...prev,
+          current: batchNumber
+        }));
+
+        try {
+          toast.loading(`Processing batch ${batchNumber}/${totalBatches} (${batch.emails.length} emails)...`, {
+            id: `batch-${batchNumber}`
+          });
+
+          const response = await apiClient.sendEmail(batch);
+          
+          if (response.success) {
+            const batchProcessed = response.sent_count || batch.emails.length;
+            const batchFailed = response.failed_count || 0;
+            
+            totalProcessed += batchProcessed;
+            totalFailed += batchFailed;
+            
+            toast.success(`Batch ${batchNumber}/${totalBatches} completed: ${batchProcessed}/${batch.emails.length} sent`, {
+              id: `batch-${batchNumber}`
+            });
+          } else {
+            const batchFailed = response.failed_count || batch.emails.length;
+            totalFailed += batchFailed;
+            failedBatches.push({ batch: batchNumber, error: response.message || 'Unknown error' });
+            
+            toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${response.message || 'Unknown error'}`, {
+              id: `batch-${batchNumber}`
+            });
+          }
+        } catch (error) {
+          console.error(`Error in batch ${batchNumber}:`, error);
+          totalFailed += batch.emails.length;
+          failedBatches.push({ batch: batchNumber, error: error.message || 'Network error' });
+          
+          toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${error.message || 'Network error'}`, {
+            id: `batch-${batchNumber}`
+          });
+        }
+
+        // Update progress
+        setBatchProgress(prev => ({
+          ...prev,
+          processed: totalProcessed,
+          failed: totalFailed
+        }));
+
+        // Add delay between batches to reduce server load (except for last batch)
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+        }
+      }
+
+      // Final results
+      const successRate = ((totalProcessed / totalEmails) * 100).toFixed(1);
+      
+      if (totalProcessed === totalEmails) {
         toast.success(
-          `Emails sent successfully! ${response.sent_count}/${response.total_recipients} delivered`
+          `🎉 All emails sent successfully! ${totalProcessed}/${totalEmails} delivered (100%)`,
+          { duration: 6000 }
         );
+      } else if (totalProcessed > 0) {
+        toast.success(
+          `✅ Batch processing completed! ${totalProcessed}/${totalEmails} delivered (${successRate}%)`,
+          { duration: 6000 }
+        );
+        
+        if (failedBatches.length > 0) {
+          toast.error(
+            `⚠️ ${failedBatches.length} batch(es) failed. Check console for details.`,
+            { duration: 8000 }
+          );
+          console.warn('Failed batches:', failedBatches);
+        }
+      } else {
+        toast.error(
+          `❌ All batches failed. No emails were sent. Check your connection and try again.`,
+          { duration: 8000 }
+        );
+      }
+
+      // Clear selections if all emails were sent successfully
+      if (totalProcessed === totalEmails) {
         setSelectedApplicants([]);
         if (!useCustomTemplate) {
           setSelectedTemplate("");
@@ -350,14 +570,17 @@ const BulkMail = () => {
           setCustomBody("");
           setTemplateProps([]);
         }
-      } else {
-        toast.error(`Failed to send some emails. ${response.failed_count} failed.`);
       }
+
     } catch (error) {
-      console.error("Error sending emails:", error);
-      toast.error("Failed to send emails. Please try again.");
+      console.error("Error in batch processing:", error);
+      toast.error("Failed to process bulk emails. Please try again.");
     } finally {
       setSending(false);
+      // Reset progress after a delay
+      setTimeout(() => {
+        setBatchProgress({ current: 0, total: 0, processed: 0, failed: 0 });
+      }, 5000);
     }
   };
 
@@ -588,6 +811,43 @@ const BulkMail = () => {
             Filter Applicants
           </h2>
           
+          {/* Search Box */}
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 mb-3">Search Applicants</h3>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <motion.input
+                type="text"
+                placeholder="Search by name, email, or library ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                whileFocus={{ scale: 1.01 }}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900 placeholder-gray-500"
+              />
+              {searchQuery && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </motion.button>
+              )}
+            </div>
+            {searchQuery && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-blue-600 mt-2"
+              >
+                Found {filteredApplicants.length} applicant{filteredApplicants.length !== 1 ? 's' : ''} matching "{searchQuery}"
+              </motion.p>
+            )}
+          </div>
+          
           {/* Domain Filter */}
           <div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-3">By Domain</h3>
@@ -676,6 +936,159 @@ const BulkMail = () => {
               {selectedApplicants.length === filteredApplicants.length ? 'Deselect All' : 'Select All'} Filtered ({filteredApplicants.length})
             </motion.button>
           </div>
+        </motion.div>
+
+        {/* Batch Processing Configuration */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2" />
+              Batch Processing Settings
+            </h2>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowBatchSettings(!showBatchSettings)}
+              className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+            >
+              <Target className="w-4 h-4" />
+              <span>{showBatchSettings ? 'Hide' : 'Show'} Settings</span>
+            </motion.button>
+          </div>
+
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BarChart3 className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-900 mb-1">Batch Processing Enabled</h3>
+                <p className="text-sm text-blue-700 mb-2">
+                  Emails will be sent in batches of <strong>{batchSize}</strong> to reduce server load and improve reliability.
+                </p>
+                <div className="flex items-center space-x-4 text-xs text-blue-600">
+                  <span>• Prevents server overload</span>
+                  <span>• Better error handling</span>
+                  <span>• Progress tracking</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {showBatchSettings && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block font-medium mb-2 text-gray-700">
+                    Batch Size (emails per batch)
+                  </label>
+                  <div className="w-full flex justify-start items-center space-x-4">
+                    <div className="w-1/3">
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="range"
+                          min="5"
+                          max="50"
+                          step="5"
+                          value={batchSize}
+                          onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="min-w-[60px] text-center">
+                          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium">
+                            {batchSize}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>5 (Slower, Safer)</span>
+                        <span>50 (Faster, Higher Load)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {Math.ceil(selectedApplicants.length / batchSize)}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Batches</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {Math.ceil(selectedApplicants.length / batchSize) * 1}s
+                    </div>
+                    <div className="text-sm text-gray-600">Est. Time</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedApplicants.length}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Recipients</div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm text-yellow-800 font-medium">Batch Processing Info</span>
+                  </div>
+                  <ul className="text-xs text-yellow-700 mt-2 space-y-1 ml-6">
+                    <li>• Smaller batches = Higher reliability, slower processing</li>
+                    <li>• Larger batches = Faster processing, higher server load</li>
+                    <li>• 1 second delay between batches to prevent overload</li>
+                    <li>• Failed batches will be logged for retry</li>
+                  </ul>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Progress Display */}
+          <AnimatePresence>
+            {sending && batchProgress.total > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">
+                    Processing Batch {batchProgress.current} of {batchProgress.total}
+                  </span>
+                  <span className="text-sm text-blue-700">
+                    {Math.round((batchProgress.current / batchProgress.total) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: `${(batchProgress.current / batchProgress.total) * 100}%` 
+                    }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-blue-600 h-2 rounded-full"
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-blue-700">
+                  <span>✅ Sent: {batchProgress.processed}</span>
+                  <span>❌ Failed: {batchProgress.failed}</span>
+                  <span>📧 Total: {selectedApplicants.length}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Email Template Section */}
@@ -1025,12 +1438,15 @@ const BulkMail = () => {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
                       />
-                      Sending Emails...
+                      {batchProgress.total > 0 
+                        ? `Processing Batch ${batchProgress.current}/${batchProgress.total}...`
+                        : 'Sending Emails...'
+                      }
                     </>
                   ) : (
                     <>
                       <Send className="w-5 h-5 mr-2" />
-                      Send Bulk Email ({selectedApplicants.length} recipients)
+                      Send in {Math.ceil(selectedApplicants.length / batchSize)} Batches ({selectedApplicants.length} recipients)
                     </>
                   )}
                 </motion.button>
@@ -1104,14 +1520,15 @@ const BulkMail = () => {
             </motion.div>
           ) : (
             <div className="divide-y divide-gray-200">
-              <AnimatePresence>
                 {filteredApplicants.map((applicant, index) => (
                   <motion.div
                     key={applicant.email}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: index * 0.05 }}
+                    initial={false}
+                    animate={{ opacity: 1 }}
+                    transition={{ 
+                      duration: 0.1,
+                      ease: "easeOut"
+                    }}
                     className="p-6 hover:bg-gray-50 transition-colors group"
                   >
                     <div className="flex items-center justify-between">
@@ -1218,7 +1635,6 @@ const BulkMail = () => {
                     </div>
                   </motion.div>
                 ))}
-              </AnimatePresence>
             </div>
           )}
         </motion.div>

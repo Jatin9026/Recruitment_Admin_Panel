@@ -10,6 +10,61 @@ function ApplicantDetailModal({ applicant, onClose }) {
     return new Date(datetime).toLocaleString();
   };
 
+  // Helper function to format assigned slot (handles ISO string ranges)
+  const formatAssignedSlot = (slotString) => {
+    if (!slotString) return "Not assigned";
+    
+    try {
+      // Check if it's a range format (ISO - ISO)
+      if (slotString.includes(' - ')) {
+        const [startISO, endISO] = slotString.split(' - ');
+        const startDate = new Date(startISO);
+        const endDate = new Date(endISO);
+        
+        // Format to IST
+        const options = {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        };
+        
+        const startFormatted = startDate.toLocaleString('en-IN', options);
+        const endFormatted = endDate.toLocaleString('en-IN', options);
+        
+        // If same day, show date once
+        const startDatePart = startFormatted.split(', ')[0];
+        const endDatePart = endFormatted.split(', ')[0];
+        
+        if (startDatePart === endDatePart) {
+          const startTime = startFormatted.split(', ')[1];
+          const endTime = endFormatted.split(', ')[1];
+          return `${startDatePart}, ${startTime} - ${endTime}`;
+        } else {
+          return `${startFormatted} - ${endFormatted}`;
+        }
+      } else {
+        // Single datetime
+        const date = new Date(slotString);
+        return date.toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    } catch (error) {
+      console.error('Error formatting assigned slot:', error);
+      return slotString; // Return original if parsing fails
+    }
+  };
+
   // Helper function to get status color and icon
   const getStatusInfo = (status) => {
     switch (status?.toLowerCase()) {
@@ -155,9 +210,14 @@ function ApplicantDetailModal({ applicant, onClose }) {
                   )}
 
                   {applicant.assignedSlot && (
-                    <div className="p-3 bg-white rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Assigned Slot</p>
-                      <p className="text-sm text-gray-700 font-medium">{applicant.assignedSlot}</p>
+                    <div className="flex items-center p-3 bg-white rounded-lg shadow-sm">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <span className="text-blue-600 font-semibold">🕒</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Assigned Slot</p>
+                        <p className="font-medium text-gray-900">{formatAssignedSlot(applicant.assignedSlot)}</p>
+                      </div>
                     </div>
                   )}
 

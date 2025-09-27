@@ -1,5 +1,5 @@
 // API Configuration and utilities
-const API_BASE_URL = 'https://rec-backend-z2qa.onrender.com';
+const API_BASE_URL = 'https://ecellrecruits.shdevsolutions.com';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
