@@ -14,6 +14,7 @@ const BulkMail = () => {
   const [filterDomain, setFilterDomain] = useState("All");
   const [filterRound, setFilterRound] = useState("All");
   const [filterGroup, setFilterGroup] = useState("All");
+  const [filterSlot, setFilterSlot] = useState("All"); // "All" | "assigned" | "unassigned"
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -164,8 +165,34 @@ const BulkMail = () => {
       }
     }
     
+    // Filter by slot assignment (assigned / unassigned)
+    if (filterSlot !== "All") {
+      if (filterSlot === "assigned") {
+        filtered = filtered.filter(applicant => Boolean(applicant.assignedSlot));
+      } else if (filterSlot === "unassigned") {
+        filtered = filtered.filter(applicant => !applicant.assignedSlot);
+      }
+    }
+    
     setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup]);
+  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot]);
+
+  // Helper to parse assignedSlot (same format used by SlotAttendance)
+  const parseAssignedSlot = (slotString) => {
+    if (!slotString) return null;
+    try {
+      const [start, end] = slotString.split(' - ');
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      return {
+        startTime: startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        startDate: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        timeRange: `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+      };
+    } catch {
+      return null;
+    }
+  };
 
   const handleApplicantToggle = (email) => {
     setSelectedApplicants(prev =>
@@ -899,24 +926,41 @@ const BulkMail = () => {
           </div>
 
           {/* Group Filter */}
-          <div>
-            <h3 className="font-medium text-gray-700 mb-3">By Group Number</h3>
-            <select
-              value={filterGroup}
-              onChange={(e) => setFilterGroup(e.target.value)}
-              className="w-full md:w-64 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
-            >
-              {uniqueGroups.map((group) => (
-                <option key={group} value={group.toString()}>
-                  {group === "unassigned" 
-                    ? `Unassigned (${applicants.filter(a => !a.groupNumber).length})` 
-                    : group === "All" 
-                    ? "All Groups" 
-                    : `Group ${group} (${applicants.filter(a => a.groupNumber === group).length})`
-                  }
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col md:flex-row md:items-start md:space-x-4">
+            <div>
+              <h3 className="font-medium text-gray-700 mb-3">By Group Number</h3>
+              <select
+                value={filterGroup}
+                onChange={(e) => setFilterGroup(e.target.value)}
+                className="w-full md:w-64 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+              >
+                {uniqueGroups.map((group) => (
+                  <option key={group} value={group.toString()}>
+                    {group === "unassigned" 
+                      ? `Unassigned (${applicants.filter(a => !a.groupNumber).length})` 
+                      : group === "All" 
+                      ? "All Groups" 
+                      : `Group ${group} (${applicants.filter(a => a.groupNumber === group).length})`
+                    }
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Slot Assignment Filter (side of Group dropdown) */}
+            <div className="mt-3 md:mt-0">
+              <h3 className="font-medium text-gray-700 mb-3">Slot Assignment</h3>
+              <select
+                value={filterSlot}
+                onChange={(e) => setFilterSlot(e.target.value)}
+                className="w-full md:w-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                title="Filter by slot assignment"
+              >
+                <option value="All">All Slots</option>
+                <option value="assigned">Assigned Slot</option>
+                <option value="unassigned">Unassigned Slot</option>
+              </select>
+            </div>
           </div>
 
           {/* Select All Button for Current Filter */}
@@ -1586,6 +1630,23 @@ const BulkMail = () => {
                                   <div className="text-xs text-gray-500">{applicant.gd.venue}</div>
                                 )}
                               </div>
+                            ) : applicant.assignedSlot ? (
+                              (() => {
+                                const slotInfo = parseAssignedSlot(applicant.assignedSlot);
+                                return slotInfo ? (
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {slotInfo.startTime}, {slotInfo.startDate}
+                                    </div>
+                                    <div className="text-xs text-gray-500">{slotInfo.timeRange}</div>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    Assigned (invalid format)
+                                  </span>
+                                );
+                              })()
                             ) : (
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                                 <Calendar className="w-3 h-3 mr-1" />
