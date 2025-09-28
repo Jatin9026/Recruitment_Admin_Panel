@@ -194,6 +194,55 @@ const BulkMail = () => {
     }
   };
 
+  // Helper to parse assignedSlot and convert to IST for email payload
+  const parseAssignedSlotForPayload = (assignedSlot) => {
+    if (!assignedSlot) return null;
+    
+    try {
+      // Parse the assignedSlot format: "2025-09-29T13:00:00.000Z - 2025-09-29T13:30:00.000Z"
+      const [startTimeStr] = assignedSlot.split(' - ');
+      const utcDate = new Date(startTimeStr);
+      
+      // Convert to IST using toLocaleString with Asia/Kolkata timezone
+      const istDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      
+      // Format date as "29th September, 2025"
+      const day = istDate.getDate();
+      const month = istDate.toLocaleString('en-US', { month: 'long', timeZone: "Asia/Kolkata" });
+      const year = istDate.getFullYear();
+      
+      // Add ordinal suffix to day (1st, 2nd, 3rd, 4th, etc.)
+      const getOrdinalSuffix = (day) => {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+          case 1: return 'st';
+          case 2: return 'nd';
+          case 3: return 'rd';
+          default: return 'th';
+        }
+      };
+      
+      const formattedDate = `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
+      
+      // Format time as HH:MM AM/PM in IST
+      const formattedTime = utcDate.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
+      });
+      
+      return {
+        date: formattedDate,
+        time: formattedTime,
+        istDate: istDate
+      };
+    } catch (error) {
+      console.error('Error parsing assignedSlot:', error);
+      return null;
+    }
+  };
+
   const handleApplicantToggle = (email) => {
     setSelectedApplicants(prev =>
       prev.includes(email) 
@@ -269,8 +318,17 @@ const BulkMail = () => {
         switch (prop.key.toLowerCase()) {
           case 'date':
           case 'datetime':
-            // Use GD datetime if available, otherwise use provided value
+            // Priority: 1. assignedSlot (parsed to IST), 2. GD datetime, 3. provided value
             customData[prop.key] = selectedApplicantData.map(a => {
+              // First try to use assignedSlot
+              if (a.assignedSlot) {
+                const slotInfo = parseAssignedSlotForPayload(a.assignedSlot);
+                if (slotInfo) {
+                  return slotInfo.date;
+                }
+              }
+              
+              // Fallback to GD datetime
               if (a.gd && a.gd.datetime) {
                 // Parse the ISO string directly without timezone conversion
                 const date = new Date(a.gd.datetime);
@@ -280,12 +338,22 @@ const BulkMail = () => {
                 const day = String(date.getUTCDate()).padStart(2, '0');
                 return `${month}/${day}/${year}`;
               }
+              
               return prop.value || "";
             });
             break;
           case 'time':
-            // Extract time from GD datetime if available, otherwise use provided value
+            // Priority: 1. assignedSlot (parsed to IST), 2. GD datetime, 3. provided value
             customData[prop.key] = selectedApplicantData.map(a => {
+              // First try to use assignedSlot
+              if (a.assignedSlot) {
+                const slotInfo = parseAssignedSlotForPayload(a.assignedSlot);
+                if (slotInfo) {
+                  return slotInfo.time;
+                }
+              }
+              
+              // Fallback to GD datetime
               if (a.gd && a.gd.datetime) {
                 // Parse the ISO string directly without timezone conversion
                 const date = new Date(a.gd.datetime);
@@ -298,6 +366,7 @@ const BulkMail = () => {
                 const hoursStr = String(hours).padStart(2, '0');
                 return `${hoursStr}:${minutes} ${ampm}`;
               }
+              
               return prop.value || "";
             });
             break;
@@ -383,7 +452,17 @@ const BulkMail = () => {
           switch (prop.key.toLowerCase()) {
             case 'date':
             case 'datetime':
+              // Priority: 1. assignedSlot (parsed to IST), 2. GD datetime, 3. provided value
               customData[prop.key] = batchApplicantData.map(a => {
+                // First try to use assignedSlot
+                if (a.assignedSlot) {
+                  const slotInfo = parseAssignedSlotForPayload(a.assignedSlot);
+                  if (slotInfo) {
+                    return slotInfo.date;
+                  }
+                }
+                
+                // Fallback to GD datetime
                 if (a.gd && a.gd.datetime) {
                   const date = new Date(a.gd.datetime);
                   const year = date.getUTCFullYear();
@@ -391,11 +470,22 @@ const BulkMail = () => {
                   const day = String(date.getUTCDate()).padStart(2, '0');
                   return `${month}/${day}/${year}`;
                 }
+                
                 return prop.value || "";
               });
               break;
             case 'time':
+              // Priority: 1. assignedSlot (parsed to IST), 2. GD datetime, 3. provided value
               customData[prop.key] = batchApplicantData.map(a => {
+                // First try to use assignedSlot
+                if (a.assignedSlot) {
+                  const slotInfo = parseAssignedSlotForPayload(a.assignedSlot);
+                  if (slotInfo) {
+                    return slotInfo.time;
+                  }
+                }
+                
+                // Fallback to GD datetime
                 if (a.gd && a.gd.datetime) {
                   const date = new Date(a.gd.datetime);
                   let hours = date.getUTCHours();
@@ -406,6 +496,7 @@ const BulkMail = () => {
                   const hoursStr = String(hours).padStart(2, '0');
                   return `${hoursStr}:${minutes} ${ampm}`;
                 }
+                
                 return prop.value || "";
               });
               break;
@@ -1337,7 +1428,8 @@ const BulkMail = () => {
                     <span className="block mt-1">
                       • <code>name</code>, <code>email</code>, <code>phone</code> → From applicant profile<br/>
                       • <code>domain</code>, <code>branch</code>, <code>year</code> → From applicant academic info<br/>
-                      • <code>date</code>, <code>time</code> → From GD datetime (if available)<br/>
+                      • <code>date</code> → "29th September, 2025" format from assignedSlot (IST)<br/>
+                      • <code>time</code> → "06:30 PM" format from assignedSlot (IST)<br/>
                       • <code>venue</code> → From GD venue (if available)<br/>
                       • Custom variables → Use your provided values
                     </span>
