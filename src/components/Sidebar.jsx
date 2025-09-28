@@ -25,17 +25,7 @@ import {
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
   { path: "/slots/bulk-assign", label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
-  // {
-  //   label: "Slots",
-  //   icon: Clock,
-  //   roles: ROUTE_PERMISSIONS.slots,
-  //   children: [
-  //     { path: "/slot", label: "Manage Slots" },
-  //   ],
-  // },
   { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.slots },
-  // { path: "/applicants/list", label: "Applicants", icon: Users, roles: ROUTE_PERMISSIONS.applicants },
-  // { path: "/attendance/check-in", label: "Attendance", icon: ClipboardList, roles: ROUTE_PERMISSIONS.attendance },
   { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
   { path: "/screening", label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },
   {
@@ -52,8 +42,8 @@ const menuItems = [
   },
   { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
   { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
-  // { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
   { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
+  { path: "/admin/list", label: "Admin List", icon: Users, roles: ROUTE_PERMISSIONS.adminLogs },
   { path: "/admin/logs", label: "Admin Logs", icon: Activity, roles: ROUTE_PERMISSIONS.adminLogs },
 ];
 

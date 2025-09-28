@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '../../utils/apiConfig';
-import ApplicantDetailModal from '../../components/ApplicantDetailModal';
+import ApplicantDetailModal, { getGender, isHosteler } from '../../components/ApplicantDetailModal';
 
 const BulkSlotAssignment = () => {
   const [applicants, setApplicants] = useState([]);
@@ -35,6 +35,9 @@ const BulkSlotAssignment = () => {
   // Applicant Detail Modal
   const [selectedApplicantForModal, setSelectedApplicantForModal] = useState(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
+
+  // New filters / ordering
+  const [priorityTop, setPriorityTop] = useState('default'); // default | girls_nonhostel | boys_nonhostel | girls_hostel | boys_hostel
 
   useEffect(() => {
     fetchApplicants();
@@ -66,18 +69,62 @@ const BulkSlotAssignment = () => {
         default: // 'all'
           return true;
       }
+
+      return true;
     });
 
-    // Sort to show unassigned students first for better UX
-    return filtered.sort((a, b) => {
-      // If one has assigned slot and other doesn't, prioritize unassigned
-      if (!a.assignedSlot && b.assignedSlot) return -1;
-      if (a.assignedSlot && !b.assignedSlot) return 1;
-      
-      // If both have same assignment status, sort by name
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  }, [applicants, searchTerm, filterType]);
+    // Build ordering array based on priorityTop selection.
+    // Base sequence (default): girls_nonhostel, boys_nonhostel, girls_hostel, boys_hostel
+    const baseOrder = ['girls_nonhostel', 'boys_nonhostel', 'girls_hostel', 'boys_hostel'];
+    const buildOrder = (top) => {
+      if (!top || top === 'default') return baseOrder;
+      // put selected top first, then the remaining in baseOrder sequence preserving relative order
+      return [top, ...baseOrder.filter(g => g !== top)];
+    };
+
+    const order = buildOrder(priorityTop);
+
+    const groupOf = (app) => {
+      const g = getGender(app); // 'female'|'male'|'other'
+      const h = isHosteler(app); // boolean
+      if (g === 'female' && !h) return 'girls_nonhostel';
+      if (g === 'male' && !h) return 'boys_nonhostel';
+      if (g === 'female' && h) return 'girls_hostel';
+      if (g === 'male' && h) return 'boys_hostel';
+      // unknown/other goes to end
+      return 'other';
+    };
+
+    const priorityRank = (app) => {
+      const grp = groupOf(app);
+      const idx = order.indexOf(grp);
+      return idx === -1 ? order.length : idx;
+    };
+
+    // If a specific priority is selected, sort by that group order.
+    // If "default" is selected, do not apply group-priority ordering — use baseline sort.
+    if (priorityTop && priorityTop !== 'default') {
+      filtered.sort((a, b) => {
+        const pa = priorityRank(a);
+        const pb = priorityRank(b);
+        if (pa !== pb) return pa - pb;
+        // fallback: unassigned first then name
+        if (!a.assignedSlot && b.assignedSlot) return -1;
+        if (a.assignedSlot && !b.assignedSlot) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    } else {
+      // Default behaviour: no group priority — keep a neutral ordering:
+      // unassigned first, then alphabetical by name.
+      filtered.sort((a, b) => {
+        if (!a.assignedSlot && b.assignedSlot) return -1;
+        if (a.assignedSlot && !b.assignedSlot) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+
+    return filtered;
+  }, [applicants, searchTerm, filterType, priorityTop]);
 
   // Calculate stats using useMemo for performance
   const stats = useMemo(() => {
@@ -329,7 +376,7 @@ const BulkSlotAssignment = () => {
               )}
             </div>
 
-            {/* Filter */}
+            {/* Existing Filter */}
             <div className="relative">
               <Filter className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <select
@@ -340,6 +387,26 @@ const BulkSlotAssignment = () => {
                 <option value="all">All Applicants</option>
                 <option value="assigned">Assigned Slots</option>
                 <option value="unassigned">Unassigned</option>
+              </select>
+            </div>
+
+            {/* removed category filter - only priorityTop dropdown remains */}
+
+            {/* Priority dropdown: choose which group should be top */}
+            <div className="relative">
+              <label htmlFor="priorityTop" className="sr-only">Priority Top</label>
+              <select
+                id="priorityTop"
+                value={priorityTop}
+                onChange={(e) => setPriorityTop(e.target.value)}
+                className="pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
+                title="Choose group to prioritize first"
+              >
+                <option value="default">Default priority</option>
+                <option value="girls_nonhostel">Girls — Non‑Hostel first</option>
+                <option value="boys_nonhostel">Boys — Non‑Hostel first</option>
+                <option value="girls_hostel">Girls — Hostel first</option>
+                <option value="boys_hostel">Boys — Hostel first</option>
               </select>
             </div>
 
@@ -434,6 +501,13 @@ const BulkSlotAssignment = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contact
                   </th>
+
+                  {/* NEW: Gender column */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+
+                  {/* NEW: Hostel column */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostel</th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Academic Info
                   </th>
@@ -452,6 +526,8 @@ const BulkSlotAssignment = () => {
                 {filteredApplicants.map((applicant, index) => {
                   const isSelected = selectedApplicants.find(a => a.id === applicant.id);
                   const slotInfo = parseSlotTime(applicant.assignedSlot);
+                  const gender = getGender(applicant); // 'female'|'male'|'other'
+                  const host = isHosteler(applicant); // boolean
                   
                   return (
                     <motion.tr
@@ -492,6 +568,27 @@ const BulkSlotAssignment = () => {
                           <div className="text-sm text-gray-900">{applicant.email}</div>
                           <div className="text-sm text-gray-500">{applicant.phone || 'N/A'}</div>
                         </td>
+
+                        {/* Gender cell */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 rounded-full text-sm ${
+                            gender === 'female' ? 'bg-pink-50 text-pink-700' :
+                            gender === 'male' ? 'bg-blue-50 text-blue-700' :
+                            'bg-gray-50 text-gray-700'
+                          }`}>
+                            {gender === 'female' ? 'Girl' : gender === 'male' ? 'Boy' : 'Other'}
+                          </span>
+                        </td>
+
+                        {/* Hostel cell */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 rounded-full text-sm ${
+                            host ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                          }`}>
+                            {host ? 'Hostel' : 'Non‑Hostel'}
+                          </span>
+                        </td>
+
                         <td className="px-6 py-4 whitespace-break-spaces">
                           <div className="text-sm text-gray-900">Year {applicant.year || 'N/A'}</div>
                           <div className="text-sm text-gray-500">{applicant.branch || 'N/A'}</div>

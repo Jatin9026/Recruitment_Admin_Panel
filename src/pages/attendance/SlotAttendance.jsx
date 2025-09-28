@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '../../utils/apiConfig';
-import ApplicantDetailModal from '../../components/ApplicantDetailModal';
+import ApplicantDetailModal, { getGender, isHosteler } from '../../components/ApplicantDetailModal';
 import { 
   autoScheduler, 
   startAutoScheduling, 
@@ -341,6 +341,33 @@ const SlotAttendance = () => {
     const completionRate = total > 0 ? Math.round((present / total) * 100) : 0;
     
     return { total, present, notMarked, completionRate };
+  };
+
+  // New: compute boys/girls x hostel/non-hostel counts for a slot
+  const getSlotCategoryCounts = (slotApplicants) => {
+    const counts = {
+      boys_hostel: 0,
+      boys_nonhostel: 0,
+      girls_hostel: 0,
+      girls_nonhostel: 0
+    };
+
+    slotApplicants.forEach(app => {
+      // Prefer using helpers; fall back to common fields
+      const gender = (typeof getGender === 'function') ? getGender(app) : (app.gender || '').toString().toLowerCase();
+      const hosteler = (typeof isHosteler === 'function') ? isHosteler(app) : Boolean(app.hostel || app.isHosteler || app.is_hosteler);
+
+      if (gender === 'male') {
+        if (hosteler) counts.boys_hostel++;
+        else counts.boys_nonhostel++;
+      } else if (gender === 'female') {
+        if (hosteler) counts.girls_hostel++;
+        else counts.girls_nonhostel++;
+      }
+      // ignore other/unknown
+    });
+
+    return counts;
   };
 
   const getStatusColor = (isPresent) => {
@@ -697,7 +724,23 @@ const SlotAttendance = () => {
                         </div>
                       </div>
                       
+                      {/*
+                        Render category counts (boys/girls × hostel/non-hostel) to the right of header,
+                        then the expand/collapse chevron.
+                      */}
                       <div className="flex items-center gap-3">
+                        {(() => {
+                          const cat = getSlotCategoryCounts(slotApplicants);
+                          return (
+                            <div className="hidden sm:flex items-center gap-2 mr-2">
+                              <span className="text-xs text-gray-500">Boys H:<span className="ml-1 font-medium text-gray-900">{cat.boys_hostel}</span></span>
+                              <span className="text-xs text-gray-500">Boys DS:<span className="ml-1 font-medium text-gray-900">{cat.boys_nonhostel}</span></span>
+                              <span className="text-xs text-gray-500">Girls H:<span className="ml-1 font-medium text-gray-900">{cat.girls_hostel}</span></span>
+                              <span className="text-xs text-gray-500">Girls DS:<span className="ml-1 font-medium text-gray-900">{cat.girls_nonhostel}</span></span>
+                            </div>
+                          );
+                        })()}
+
                         {expandedSlots.has(slotKey) ? (
                           <ChevronUp className="w-5 h-5 text-gray-400" />
                         ) : (
