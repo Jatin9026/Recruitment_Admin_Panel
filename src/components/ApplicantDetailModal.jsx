@@ -1,6 +1,49 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// New helpers: export so other pages can read gender/hostel info reliably
+export function getGender(applicant) {
+  if (!applicant) return 'unknown';
+  const raw = (
+    applicant.gender ||
+    applicant.sex ||
+    applicant.profile?.gender ||
+    applicant.personal?.gender ||
+    applicant.details?.gender ||
+    ''
+  );
+  const g = String(raw).trim().toLowerCase();
+  if (!g) return 'unknown';
+  if (g.startsWith('f')) return 'female';
+  if (g.startsWith('m')) return 'male';
+  return 'other';
+}
+
+export function isHosteler(applicant) {
+  if (!applicant) return false;
+  const checks = [
+    applicant.isHosteller,
+    applicant.is_hosteller,
+    applicant.hosteller,
+    applicant.hostel,
+    applicant.hostel_status,
+    applicant.hostel?.toString?.(),
+    applicant.hosteller?.toString?.()
+  ];
+  for (const c of checks) {
+    if (c === undefined || c === null) continue;
+    const s = String(c).trim().toLowerCase();
+    if (s === 'true' || s === 'yes' || s === '1') return true;
+    if (s === 'false' || s === 'no' || s === '0') return false;
+  }
+  // fallback: try to detect in serialized object
+  try {
+    const str = JSON.stringify(applicant).toLowerCase();
+    if (str.includes('"hostel":true') || str.includes('"hosteller":true') || str.includes('"hostel":"yes"')) return true;
+  } catch (e) { /* ignore */ }
+  return false;
+}
+
 function ApplicantDetailModal({ applicant, onClose }) {
   if (!applicant) return null;
 

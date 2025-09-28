@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'https://rec-backend-z2qa.onrender.com',
+        target: 'https://ecellrecruits.shdevsolutions.com',
         changeOrigin: true,
         secure: true,
         configure: (proxy, _options) => {

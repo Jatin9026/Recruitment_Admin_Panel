@@ -61,6 +61,8 @@ export const API_ENDPOINTS = {
   ADMIN_ME: '/api/admin/me',
   ADMIN_UPDATE: '/api/admin/update',
   ADMIN_LOGS: '/api/logs/',
+  ADMIN_ALL: '/api/admin/all',
+  ADMIN_DELETE: '/api/admin/delete/{admin_id}',
   
   // Settings
   SETTINGS_GET: '/api/settings/',
@@ -225,6 +227,16 @@ export class ApiClient {
     return this.request(API_ENDPOINTS.ADMIN_UPDATE, {
       method: 'PUT',
       body: JSON.stringify(profileData)
+    });
+  }
+
+  async getAllAdmins() {
+    return this.request(API_ENDPOINTS.ADMIN_ALL);
+  }
+
+  async deleteAdmin(adminId) {
+    return this.request(API_ENDPOINTS.ADMIN_DELETE.replace('{admin_id}', adminId), {
+      method: 'DELETE'
     });
   }
 
