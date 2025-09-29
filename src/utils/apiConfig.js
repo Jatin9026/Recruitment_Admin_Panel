@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
   
   // Admin
   ADMIN_LOGIN: '/api/admin/login',
+  ADMIN_REFRESH: '/api/admin/refresh',
   ADMIN_CREATE: '/api/admin/create',
   ADMIN_ME: '/api/admin/me',
   ADMIN_UPDATE: '/api/admin/update',
@@ -84,6 +85,76 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, config);
+      
+      // Check if the response is 401 (Unauthorized) and not already a refresh request
+      if (response.status === 401 && !endpoint.includes('/refresh')) {
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        if (refreshToken) {
+          try {
+            console.log('Access token expired, attempting to refresh...');
+            
+            // Show a subtle notification that token is being refreshed
+            if (window.showTokenRefreshNotification) {
+              window.showTokenRefreshNotification();
+            }
+            
+            // Attempt to refresh the token
+            const refreshResponse = await this.refreshAdminToken(refreshToken);
+            
+            // Update localStorage with new tokens
+            localStorage.setItem('accessToken', refreshResponse.access_token);
+            if (refreshResponse.refresh_token) {
+              localStorage.setItem('refreshToken', refreshResponse.refresh_token);
+            }
+            
+            // Update the auth store if available
+            if (window.refreshAuthStore) {
+              window.refreshAuthStore(refreshResponse.access_token, refreshResponse.refresh_token);
+            }
+            
+            console.log('Token refreshed successfully, retrying original request...');
+            
+            // Retry the original request with new token
+            const retryConfig = {
+              ...config,
+              headers: {
+                ...config.headers,
+                Authorization: `Bearer ${refreshResponse.access_token}`
+              }
+            };
+            
+            const retryResponse = await fetch(url, retryConfig);
+            return await handleResponse(retryResponse);
+            
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            
+            // Clear tokens and redirect to login
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('adminUser');
+            
+            // Trigger logout if callback is available
+            if (window.logoutCallback) {
+              window.logoutCallback();
+            }
+            
+            throw new Error('Session expired. Please log in again.');
+          }
+        } else {
+          // No refresh token available, user needs to log in
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('adminUser');
+          
+          if (window.logoutCallback) {
+            window.logoutCallback();
+          }
+          
+          throw new Error('Session expired. Please log in again.');
+        }
+      }
+      
       return await handleResponse(response);
     } catch (error) {
       console.error(`API Request failed: ${endpoint}`, error);
@@ -209,6 +280,13 @@ export class ApiClient {
     return this.request(API_ENDPOINTS.ADMIN_LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password })
+    });
+  }
+
+  async refreshAdminToken(refreshToken) {
+    return this.request(API_ENDPOINTS.ADMIN_REFRESH, {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken })
     });
   }
 

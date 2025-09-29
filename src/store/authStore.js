@@ -47,17 +47,46 @@ const useAuthStore = create((set, get) => ({
   },
 
   refreshAccessToken: async () => {
-    // No refresh token endpoint available for admin authentication
-    // Admin tokens should be long-lived or require re-login
-    console.warn("No refresh token endpoint available for admin authentication");
     const refreshToken = get().refreshToken;
     if (!refreshToken) {
+      console.warn("No refresh token available");
       get().logout();
-      return;
+      return false;
     }
-    
-    // For now, if refresh is needed, redirect to login
-    get().logout();
+
+    try {
+      set({ isLoading: true, error: null });
+      
+      const data = await apiClient.refreshAdminToken(refreshToken);
+      
+      set({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || refreshToken, // Use new refresh token if provided, otherwise keep existing
+        isLoading: false,
+      });
+      
+      localStorage.setItem("accessToken", data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem("refreshToken", data.refresh_token);
+      }
+      
+      console.log("Token refreshed successfully");
+      return true;
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      set({ error: "Session expired. Please log in again.", isLoading: false });
+      get().logout();
+      return false;
+    }
+  },
+
+  // Helper function to update tokens from external refresh
+  updateTokens: (accessToken, refreshToken) => {
+    set({
+      accessToken,
+      refreshToken: refreshToken || get().refreshToken,
+      isAuthenticated: true,
+    });
   },
 
   logout: () => {
@@ -73,6 +102,13 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("adminUser");
+    
+    // Clean up global callbacks
+    if (typeof window !== 'undefined') {
+      delete window.refreshAuthStore;
+      delete window.logoutCallback;
+      delete window.showTokenRefreshNotification;
+    }
   },
 
   initializeAuth: () => {
@@ -82,6 +118,22 @@ const useAuthStore = create((set, get) => ({
     if (state.isInitialized) {
       return;
     }
+
+    // Set up global callbacks for API client
+    window.refreshAuthStore = (accessToken, refreshToken) => {
+      get().updateTokens(accessToken, refreshToken);
+    };
+    
+    window.logoutCallback = () => {
+      get().logout();
+    };
+
+    window.showTokenRefreshNotification = () => {
+      // Show a subtle loading notification that token is being refreshed
+      if (typeof window !== 'undefined' && window.showToast) {
+        window.showToast('Refreshing session...', { type: 'loading', duration: 2000 });
+      }
+    };
 
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
