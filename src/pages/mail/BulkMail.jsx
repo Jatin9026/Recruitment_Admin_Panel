@@ -15,6 +15,7 @@ const BulkMail = () => {
   const [filterRound, setFilterRound] = useState("All");
   const [filterGroup, setFilterGroup] = useState("All");
   const [filterSlot, setFilterSlot] = useState("All"); // "All" | "assigned" | "unassigned"
+  const [filterDate, setFilterDate] = useState(""); // New: YYYY-MM-DD
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -174,8 +175,16 @@ const BulkMail = () => {
       }
     }
     
+    // Filter by selected date (match assignedSlot start date OR GD datetime date)
+    if (filterDate) {
+      filtered = filtered.filter(applicant => {
+        const slotDate = getAssignedStartDateISO(applicant);
+        return slotDate === filterDate;
+      });
+    }
+    
     setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot]);
+  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate]);
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
@@ -189,6 +198,30 @@ const BulkMail = () => {
         startDate: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         timeRange: `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`
       };
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper: get assigned slot start date as ISO YYYY-MM-DD (fall back to GD datetime if available)
+  const getAssignedStartDateISO = (applicant) => {
+    try {
+      // Try assignedSlot first (format: "start - end")
+      if (applicant?.assignedSlot && typeof applicant.assignedSlot === "string") {
+        const [start] = applicant.assignedSlot.split(" - ");
+        if (start) {
+          const d = new Date(start);
+          if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        }
+      }
+
+      // Fallback to GD datetime if present
+      if (applicant?.gd?.datetime) {
+        const gd = new Date(applicant.gd.datetime);
+        if (!isNaN(gd.getTime())) return gd.toISOString().slice(0, 10);
+      }
+
+      return null;
     } catch {
       return null;
     }
@@ -1109,6 +1142,25 @@ const BulkMail = () => {
                 <option value="assigned">Assigned Slot</option>
                 <option value="unassigned">Unassigned Slot</option>
               </select>
+
+              {/* Date filter for slots */}
+              <div className="mt-3 flex items-center space-x-2">
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="w-full md:w-48 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  title="Show applicants with slot / GD on this date"
+                />
+                {filterDate && (
+                  <button
+                    onClick={() => setFilterDate("")}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
