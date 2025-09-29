@@ -25,7 +25,7 @@ import {
 const menuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
   { path: "/slots/bulk-assign", label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
-  { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.slots },
+  { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.attendance },
   { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
   { path: "/screening", label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },
   {
