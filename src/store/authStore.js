@@ -108,6 +108,7 @@ const useAuthStore = create((set, get) => ({
       delete window.refreshAuthStore;
       delete window.logoutCallback;
       delete window.showTokenRefreshNotification;
+      delete window.dismissToast;
     }
   },
 
@@ -129,10 +130,11 @@ const useAuthStore = create((set, get) => ({
     };
 
     window.showTokenRefreshNotification = () => {
-      // Show a subtle loading notification that token is being refreshed
+      // Show a subtle loading notification that token is being refreshed and return toast ID
       if (typeof window !== 'undefined' && window.showToast) {
-        window.showToast('Refreshing session...', { type: 'loading', duration: 2000 });
+        return window.showToast('Refreshing session...', { type: 'loading', duration: 10000 });
       }
+      return null;
     };
 
     const accessToken = localStorage.getItem("accessToken");

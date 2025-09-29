@@ -94,38 +94,53 @@ export class ApiClient {
           try {
             console.log('Access token expired, attempting to refresh...');
             
-            // Show a subtle notification that token is being refreshed
+            // Show a subtle notification that token is being refreshed and get toast ID
+            let toastId = null;
             if (window.showTokenRefreshNotification) {
-              window.showTokenRefreshNotification();
+              toastId = window.showTokenRefreshNotification();
             }
             
-            // Attempt to refresh the token
-            const refreshResponse = await this.refreshAdminToken(refreshToken);
-            
-            // Update localStorage with new tokens
-            localStorage.setItem('accessToken', refreshResponse.access_token);
-            if (refreshResponse.refresh_token) {
-              localStorage.setItem('refreshToken', refreshResponse.refresh_token);
-            }
-            
-            // Update the auth store if available
-            if (window.refreshAuthStore) {
-              window.refreshAuthStore(refreshResponse.access_token, refreshResponse.refresh_token);
-            }
-            
-            console.log('Token refreshed successfully, retrying original request...');
-            
-            // Retry the original request with new token
-            const retryConfig = {
-              ...config,
-              headers: {
-                ...config.headers,
-                Authorization: `Bearer ${refreshResponse.access_token}`
+            try {
+              // Attempt to refresh the token
+              const refreshResponse = await this.refreshAdminToken(refreshToken);
+              
+              // Update localStorage with new tokens
+              localStorage.setItem('accessToken', refreshResponse.access_token);
+              if (refreshResponse.refresh_token) {
+                localStorage.setItem('refreshToken', refreshResponse.refresh_token);
               }
-            };
-            
-            const retryResponse = await fetch(url, retryConfig);
-            return await handleResponse(retryResponse);
+              
+              // Update the auth store if available
+              if (window.refreshAuthStore) {
+                window.refreshAuthStore(refreshResponse.access_token, refreshResponse.refresh_token);
+              }
+              
+              console.log('Token refreshed successfully, retrying original request...');
+              
+              // Dismiss the refresh notification
+              if (toastId && window.dismissToast) {
+                window.dismissToast(toastId);
+              }
+              
+              // Retry the original request with new token
+              const retryConfig = {
+                ...config,
+                headers: {
+                  ...config.headers,
+                  Authorization: `Bearer ${refreshResponse.access_token}`
+                }
+              };
+              
+              const retryResponse = await fetch(url, retryConfig);
+              return await handleResponse(retryResponse);
+              
+            } catch (refreshError) {
+              // Dismiss the refresh notification on error
+              if (toastId && window.dismissToast) {
+                window.dismissToast(toastId);
+              }
+              throw refreshError; // Re-throw to be handled by outer catch
+            }
             
           } catch (refreshError) {
             console.error('Token refresh failed:', refreshError);
