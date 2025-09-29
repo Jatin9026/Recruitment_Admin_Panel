@@ -17,7 +17,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Target
 } from 'lucide-react';
 import useApplicantStore from '../../store/applicantStore';
 import useAuthStore from '../../store/authStore';
@@ -82,6 +83,36 @@ const Dashboard = () => {
       return acc;
     }, {});
 
+    // Domain breakdown (first preferences)
+    const domainFirstPrefBreakdown = applicants.reduce((acc, app) => {
+      const domain = app.domain_pref_one?.name || app.domainPrefOne?.name || 'Not Specified';
+      acc[domain] = (acc[domain] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Domain breakdown (second preferences)
+    const domainSecondPrefBreakdown = applicants.reduce((acc, app) => {
+      const domain = app.domain_pref_two?.name || app.domainPrefTwo?.name;
+      if (domain) {
+        acc[domain] = (acc[domain] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    // Combined domain preferences (total interest)
+    const domainTotalInterest = applicants.reduce((acc, app) => {
+      const firstPref = app.domain_pref_one?.name || app.domainPrefOne?.name;
+      const secondPref = app.domain_pref_two?.name || app.domainPrefTwo?.name;
+      
+      if (firstPref) {
+        acc[firstPref] = (acc[firstPref] || 0) + 1;
+      }
+      if (secondPref && secondPref !== firstPref) {
+        acc[secondPref] = (acc[secondPref] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
     setStats({
       total,
       gdSelected,
@@ -93,6 +124,9 @@ const Dashboard = () => {
       piRejected,
       deptBreakdown,
       yearBreakdown,
+      domainFirstPrefBreakdown,
+      domainSecondPrefBreakdown,
+      domainTotalInterest,
       conversionRate: total > 0 ? ((screeningSelected / total) * 100).toFixed(1) : 0,
       gdConversionRate: gdScheduled > 0 ? ((gdSelected / gdScheduled) * 100).toFixed(1) : 0,
       screeningConversionRate: gdSelected > 0 ? ((screeningSelected / gdSelected) * 100).toFixed(1) : 0
@@ -237,32 +271,70 @@ const Dashboard = () => {
     );
   };
 
-  const DepartmentCard = ({ title, data, icon: Icon }) => (
-    <motion.div
-      variants={itemVariants}
-      className="bg-white rounded-lg shadow-sm border p-6"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <Icon className="w-5 h-5 text-gray-600" />
-      </div>
-      
-      <div className="space-y-2 max-h-48 overflow-y-auto">
-        {Object.entries(data).map(([key, value], index) => (
-          <motion.div
-            key={key}
-            className="flex justify-between items-center py-1"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <span className="text-sm text-gray-600 truncate">{key}</span>
-            <span className="font-medium text-gray-900 ml-2 mr-2">{value}</span>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  );
+  const DepartmentCard = ({ title, data, icon: Icon }) => {
+    // Sort data by value in descending order and filter out 'Not Specified' for domain cards
+    const sortedData = Object.entries(data)
+      .filter(([key, value]) => {
+        // Show 'Not Specified' for non-domain cards, hide for domain cards
+        if (key === 'Not Specified' && title.toLowerCase().includes('domain')) {
+          return false;
+        }
+        return value > 0;
+      })
+      .sort(([,a], [,b]) => b - a);
+
+    const totalCount = Object.values(data).reduce((sum, count) => sum + count, 0);
+
+    return (
+      <motion.div
+        variants={itemVariants}
+        className="bg-white rounded-lg shadow-sm border p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <p className="text-sm text-gray-500">Total: {totalCount}</p>
+          </div>
+          <Icon className="w-5 h-5 text-gray-600" />
+        </div>
+        
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {sortedData.length > 0 ? sortedData.map(([key, value], index) => {
+            const percentage = totalCount > 0 ? ((value / totalCount) * 100).toFixed(1) : 0;
+            return (
+              <motion.div
+                key={key}
+                className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-gray-700 truncate block whitespace-break-spaces">{key}</span>
+                  <div className="flex items-center mt-1">
+                    <div className="w-16 bg-gray-200 rounded-full h-1.5 mr-2">
+                      <motion.div
+                        className="bg-blue-600 h-1.5 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(percentage, 100)}%` }}
+                        transition={{ delay: index * 0.1 + 0.3, duration: 0.8 }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500">{percentage}%</span>
+                  </div>
+                </div>
+                <span className="font-bold text-gray-900 ml-3">{value}</span>
+              </motion.div>
+            );
+          }) : (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              No data available
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
 
   if (loading) {
     return (
@@ -388,7 +460,7 @@ const Dashboard = () => {
       {/* Demographics */}
       <motion.div variants={itemVariants}>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Applicant Demographics</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <DepartmentCard
             title="Department Breakdown"
             data={stats.deptBreakdown || {}}
@@ -398,6 +470,28 @@ const Dashboard = () => {
             title="Year Breakdown"
             data={stats.yearBreakdown || {}}
             icon={Calendar}
+          />
+          <DepartmentCard
+            title="Domain Interest (Total)"
+            data={stats.domainTotalInterest || {}}
+            icon={Target}
+          />
+        </div>
+      </motion.div>
+
+      {/* Domain Preferences Detail */}
+      <motion.div variants={itemVariants} className="mt-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Domain Preference Analysis</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DepartmentCard
+            title="First Preference Domains"
+            data={stats.domainFirstPrefBreakdown || {}}
+            icon={Award}
+          />
+          <DepartmentCard
+            title="Second Preference Domains"
+            data={stats.domainSecondPrefBreakdown || {}}
+            icon={Target}
           />
         </div>
       </motion.div>
