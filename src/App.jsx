@@ -79,6 +79,13 @@ function App() {
           return toast.info(message, { duration });
       }
     };
+
+    // Set up global dismiss function for toast notifications
+    window.dismissToast = (toastId) => {
+      if (toastId) {
+        toast.dismiss(toastId);
+      }
+    };
     
     initializeAuth();
     
@@ -86,6 +93,7 @@ function App() {
     return () => {
       if (typeof window !== 'undefined') {
         delete window.showToast;
+        delete window.dismissToast;
       }
     };
   }, [initializeAuth]);
