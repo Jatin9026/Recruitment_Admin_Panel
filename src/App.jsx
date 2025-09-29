@@ -5,7 +5,7 @@ import Layout from "./components/Layout";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import useAuthStore from "./store/authStore";
 import { ROUTE_PERMISSIONS } from "./utils/rolePermissions";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 // Page imports
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -62,7 +62,32 @@ function App() {
   // ==================== APP INITIALIZATION ====================
   useEffect(() => {
     console.log("🚀 App started, initializing authentication...");
+    
+    // Set up global toast callback for token refresh notifications
+    window.showToast = (message, options = {}) => {
+      const { type = 'info', duration = 3000 } = options;
+      
+      switch (type) {
+        case 'loading':
+          return toast.loading(message, { duration });
+        case 'success':
+          return toast.success(message, { duration });
+        case 'error':
+          return toast.error(message, { duration });
+        case 'info':
+        default:
+          return toast.info(message, { duration });
+      }
+    };
+    
     initializeAuth();
+    
+    // Cleanup function
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete window.showToast;
+      }
+    };
   }, [initializeAuth]);
 
   useEffect(() => {
