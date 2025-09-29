@@ -194,14 +194,47 @@ const BulkMail = () => {
     }
   };
 
+  // Helper to determine if email API response indicates success
+  const isEmailResponseSuccess = (response, batchSize) => {
+    // If no response, it's definitely a failure
+    if (!response) return false;
+    
+    // If response explicitly has success property, use it
+    if (response.hasOwnProperty('success')) {
+      return response.success === true;
+    }
+    
+    // If response has sent_count and total_recipients, check if they make sense
+    if (response.hasOwnProperty('sent_count')) {
+      // Success if we have sent_count >= 0 and failed_count is reasonable
+      const sentCount = response.sent_count || 0;
+      const failedCount = response.failed_count || 0;
+      const totalRecipients = response.total_recipients || batchSize;
+      
+      // Consider it successful if sent_count + failed_count matches expected recipients
+      // or if sent_count > 0 and total matches
+      return sentCount >= 0 && (sentCount + failedCount === totalRecipients || sentCount === totalRecipients);
+    }
+    
+    // If we get here, assume failure unless we have clear success indicators
+    return false;
+  };
+
   // Helper to parse assignedSlot and convert to IST for email payload
   const parseAssignedSlotForPayload = (assignedSlot) => {
-    if (!assignedSlot) return null;
+    if (!assignedSlot || typeof assignedSlot !== 'string') return null;
     
     try {
       // Parse the assignedSlot format: "2025-09-29T13:00:00.000Z - 2025-09-29T13:30:00.000Z"
+      if (!assignedSlot.includes(' - ')) return null;
+      
       const [startTimeStr] = assignedSlot.split(' - ');
+      if (!startTimeStr) return null;
+      
       const utcDate = new Date(startTimeStr);
+      
+      // Check if the date is valid
+      if (isNaN(utcDate.getTime())) return null;
       
       // Convert to IST using toLocaleString with Asia/Kolkata timezone
       const istDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
@@ -590,6 +623,7 @@ const BulkMail = () => {
       const failedBatches = [];
 
       toast.success(`Starting batch processing: ${totalEmails} emails in ${totalBatches} batches of ${batchSize}`);
+      console.log('Starting batch processing with payload structure:', batches[0]);
 
       // Process batches sequentially with delay
       for (let i = 0; i < batches.length; i++) {
@@ -609,31 +643,47 @@ const BulkMail = () => {
 
           const response = await apiClient.sendEmail(batch);
           
-          if (response.success) {
-            const batchProcessed = response.sent_count || batch.emails.length;
+          // Log the response for debugging
+          console.log(`Batch ${batchNumber} response:`, response);
+          
+          // Use helper function to determine success
+          const isSuccess = isEmailResponseSuccess(response, batch.emails.length);
+          
+          if (isSuccess) {
+            const batchProcessed = response.sent_count || 0;
             const batchFailed = response.failed_count || 0;
             
-            totalProcessed += batchProcessed;
+            // If no explicit counts, assume all emails in batch were processed successfully
+            const actualProcessed = (batchProcessed === 0 && batchFailed === 0) ? batch.emails.length : batchProcessed;
+            
+            totalProcessed += actualProcessed;
             totalFailed += batchFailed;
             
-            toast.success(`Batch ${batchNumber}/${totalBatches} completed: ${batchProcessed}/${batch.emails.length} sent`, {
+            toast.success(`Batch ${batchNumber}/${totalBatches} completed: ${actualProcessed}/${batch.emails.length} sent`, {
               id: `batch-${batchNumber}`
             });
           } else {
-            const batchFailed = response.failed_count || batch.emails.length;
+            const batchFailed = response?.failed_count || batch.emails.length;
             totalFailed += batchFailed;
-            failedBatches.push({ batch: batchNumber, error: response.message || 'Unknown error' });
+            failedBatches.push({ batch: batchNumber, error: response?.message || 'API returned unsuccessful response' });
             
-            toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${response.message || 'Unknown error'}`, {
+            toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${response?.message || 'API returned unsuccessful response'}`, {
               id: `batch-${batchNumber}`
             });
           }
         } catch (error) {
           console.error(`Error in batch ${batchNumber}:`, error);
-          totalFailed += batch.emails.length;
-          failedBatches.push({ batch: batchNumber, error: error.message || 'Network error' });
           
-          toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${error.message || 'Network error'}`, {
+          // Check if error response contains useful information
+          const errorMessage = error?.response?.data?.message || 
+                              error?.response?.data?.detail || 
+                              error?.message || 
+                              'Network or server error';
+          
+          totalFailed += batch.emails.length;
+          failedBatches.push({ batch: batchNumber, error: errorMessage });
+          
+          toast.error(`Batch ${batchNumber}/${totalBatches} failed: ${errorMessage}`, {
             id: `batch-${batchNumber}`
           });
         }
@@ -652,6 +702,14 @@ const BulkMail = () => {
       }
 
       // Final results
+      console.log('Batch processing complete:', {
+        totalEmails,
+        totalProcessed,
+        totalFailed,
+        failedBatches,
+        successRate: ((totalProcessed / totalEmails) * 100).toFixed(1)
+      });
+      
       const successRate = ((totalProcessed / totalEmails) * 100).toFixed(1);
       
       if (totalProcessed === totalEmails) {

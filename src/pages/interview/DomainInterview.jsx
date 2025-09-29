@@ -72,11 +72,44 @@ const DomainInterviewBase = ({ domain }) => {
 
     const mergedEntries = Array.from(map.values());
 
-    // prefer returnedPI top-level fields if present, otherwise keep existingPI
+    // Calculate overall status based on all entries with priority logic
+    const calculateOverallStatus = (entries) => {
+      if (!entries || entries.length === 0) return "pending";
+      
+      const statusCounts = {
+        selected: 0,
+        unsure: 0,
+        rejected: 0,
+        pending: 0,
+        scheduled: 0
+      };
+      
+      entries.forEach(entry => {
+        const status = entry.status || "pending";
+        if (statusCounts.hasOwnProperty(status)) {
+          statusCounts[status]++;
+        } else {
+          statusCounts.pending++;
+        }
+      });
+      
+      // Priority: selected > unsure > rejected > scheduled > pending
+      if (statusCounts.selected > 0) return "selected";
+      if (statusCounts.unsure > 0) return "unsure";
+      if (statusCounts.rejected > 0) return "rejected";
+      if (statusCounts.scheduled > 0) return "scheduled";
+      return "pending";
+    };
+
+    const overallStatus = calculateOverallStatus(mergedEntries);
+
+    // Always use our calculated overall status (override any API-returned status)
     return {
       ...existingPI,
       ...returnedPI,
-      entries: mergedEntries
+      entries: mergedEntries,
+      status: overallStatus, // Force our calculated status
+      datetime: returnedPI.datetime || existingPI.datetime || new Date().toISOString()
     };
   };
 
@@ -243,11 +276,42 @@ const DomainInterviewBase = ({ domain }) => {
 
       const entriesToSend = [...otherDomainEntries, newEntry];
 
+      // Calculate overall status based on all entries (including the new one)
+      const calculateOverallStatusForPayload = (entries) => {
+        if (!entries || entries.length === 0) return "pending";
+        
+        const statusCounts = {
+          selected: 0,
+          unsure: 0,
+          rejected: 0,
+          pending: 0,
+          scheduled: 0
+        };
+        
+        entries.forEach(entry => {
+          const status = entry.status || "pending";
+          if (statusCounts.hasOwnProperty(status)) {
+            statusCounts[status]++;
+          } else {
+            statusCounts.pending++;
+          }
+        });
+        
+        // Priority: selected > unsure > rejected > scheduled > pending
+        if (statusCounts.selected > 0) return "selected";
+        if (statusCounts.unsure > 0) return "unsure";
+        if (statusCounts.rejected > 0) return "rejected";
+        if (statusCounts.scheduled > 0) return "scheduled";
+        return "pending";
+      };
+
+      const overallStatus = calculateOverallStatusForPayload(entriesToSend);
+
       // Build payload to match required API body
       const piPayload = {
         entries: entriesToSend,
         datetime: new Date().toISOString(),
-        status: String(statusValue)
+        status: overallStatus
       };
 
       console.log('PI Update Request Body:', piPayload);
@@ -270,6 +334,7 @@ const DomainInterviewBase = ({ domain }) => {
             status: piPayload.status
           };
 
+          // Force recalculation of overall status to ensure consistency
           const merged = mergePI(existingPI, fallbackReturnedPI);
 
           return {
