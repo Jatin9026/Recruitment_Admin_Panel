@@ -48,6 +48,38 @@ const DomainInterviewBase = ({ domain }) => {
   const departments = [...new Set(applicants.map(a => a.branch).filter(Boolean))];
   const years = [...new Set(applicants.map(a => a.year).filter(Boolean))].sort();
 
+  // Helper: get PI entry for the current domain from applicant.pi structure
+  const getPIEntry = (applicant) => {
+    if (!applicant?.pi) return null;
+    const entries = applicant.pi.entries || [];
+    return entries.find(e => String(e.domain).toLowerCase() === String(domain).toLowerCase()) || null;
+  };
+
+  // Helper: merge existing PI and returned PI without losing other-domain entries
+  const mergePI = (existingPI = {}, returnedPI = {}) => {
+    const existingEntries = Array.isArray(existingPI.entries) ? existingPI.entries : [];
+    const returnedEntries = Array.isArray(returnedPI.entries) ? returnedPI.entries : [];
+
+    const map = new Map();
+    // keep existing entries first
+    existingEntries.forEach(e => {
+      if (e && e.domain) map.set(String(e.domain).toLowerCase(), e);
+    });
+    // override/add with returned entries
+    returnedEntries.forEach(e => {
+      if (e && e.domain) map.set(String(e.domain).toLowerCase(), e);
+    });
+
+    const mergedEntries = Array.from(map.values());
+
+    // prefer returnedPI top-level fields if present, otherwise keep existingPI
+    return {
+      ...existingPI,
+      ...returnedPI,
+      entries: mergedEntries
+    };
+  };
+
   // Function to refresh only the applicants data
   const handleRefresh = async () => {
     try {
@@ -74,7 +106,6 @@ const DomainInterviewBase = ({ domain }) => {
     try {
       setLoading(true);
       const response = await apiClient.getUsers();
-      // console.log("All applicants:", response);
       
       // Filter for applicants who have been selected from both GD and Screening rounds
       // and have the current domain in their domains array
@@ -83,12 +114,9 @@ const DomainInterviewBase = ({ domain }) => {
         const hasScreeningSelected = applicant.screening && applicant.screening.status === "selected";
         const hasDomain = applicant.domains && applicant.domains.includes(domain);
         
-        // console.log(`${applicant.name}: GD=${hasGDSelected}, Screening=${hasScreeningSelected}, Domain=${hasDomain}, Domains=${applicant.domains}`);
-        
         return hasGDSelected && hasScreeningSelected && hasDomain;
       });
       
-      // console.log(`Filtered applicants for ${domain}:`, filtered);
       setApplicants(filtered);
     } catch (error) {
       console.error("Error fetching domain applicants:", error);
@@ -133,19 +161,36 @@ const DomainInterviewBase = ({ domain }) => {
     setFilterYear("");
   };
 
-  // Statistics calculations
+  // Statistics calculations (use domain-specific PI entry)
   const stats = {
     total: filteredApplicants.length,
-    pending: filteredApplicants.filter(a => !a.pi || !a.pi.status || a.pi.status === "scheduled").length,
-    completed: filteredApplicants.filter(a => a.pi && (a.pi.status === "selected" || a.pi.status === "rejected")).length,
-    selected: filteredApplicants.filter(a => a.pi && a.pi.status === "selected").length,
-    rejected: filteredApplicants.filter(a => a.pi && a.pi.status === "rejected").length
+    pending: filteredApplicants.filter(a => {
+      const entry = getPIEntry(a);
+      return !entry || entry.status === "scheduled" || entry.status === "pending";
+    }).length,
+    completed: filteredApplicants.filter(a => {
+      const entry = getPIEntry(a);
+      return entry && (entry.status === "selected" || entry.status === "rejected");
+    }).length,
+    selected: filteredApplicants.filter(a => {
+      const entry = getPIEntry(a);
+      return entry && entry.status === "selected";
+    }).length,
+    rejected: filteredApplicants.filter(a => {
+      const entry = getPIEntry(a);
+      return entry && entry.status === "rejected";
+    }).length
   };
 
   const handleOpenEvaluation = (applicant) => {
+    const entry = getPIEntry(applicant);
     setEvaluatingApplicant(applicant);
-    setFeedback(applicant.pi?.remarks || "");
-    setDecision(applicant.pi?.status === "selected" ? "select" : applicant.pi?.status === "rejected" ? "reject" : "");
+    setFeedback(entry?.remarks || "");
+    setDecision(
+      entry?.status === "selected" ? "select" :
+      entry?.status === "rejected" ? "reject" :
+      entry?.status === "unsure" ? "unsure" : ""
+    );
   };
 
   const handleCloseEvaluation = () => {
@@ -162,75 +207,97 @@ const DomainInterviewBase = ({ domain }) => {
 
     try {
       setSubmitting(true);
-      
-      // Construct proper status value
+
+      // Map decision to API status
       let statusValue;
-      if (decision === "select") {
-        statusValue = "selected";
-      } else if (decision === "unsure") {
-        statusValue = "unsure";
-      } else if (decision === "reject") {
-        statusValue = "rejected";
-      } else {
-        statusValue = "pending"; // fallback
+      if (decision === "select") statusValue = "selected";
+      else if (decision === "unsure") statusValue = "unsure";
+      else if (decision === "reject") statusValue = "rejected";
+      else statusValue = "pending";
+
+      // Prepare remarks: prefer feedback typed by interviewer, fallback to defaults
+      let remarksValue = (feedback || "").trim();
+      if (!remarksValue) {
+        if (decision === "select") remarksValue = `Selected for ${domain} domain`;
+        else if (decision === "unsure") remarksValue = "Unsure, Task Submission will be required.";
+        else if (decision === "reject") remarksValue = `Rejected for ${domain} domain`;
+        else remarksValue = "No feedback provided";
       }
 
-      // Construct proper remarks
-      let remarksValue = String(""); // Ensure it's always a string
-      if (remarksValue.trim() === "") {
-        if (decision === "select") {
-          remarksValue = `Selected for ${domain} domain`;
-        } else if (decision === "unsure") {
-          remarksValue = "Unsure, Task Submission will be required.";
-        } else if (decision === "reject") {
-          remarksValue = `Rejected for ${domain} domain`;
-        } else {
-          remarksValue = "No feedback provided";
-        }
-      }
+      // interviewer: try to pick from localStorage or use a generic string
+      const interviewer = localStorage.getItem('adminEmail') || localStorage.getItem('adminName') || 'Interviewer';
 
-      // Validate the data before sending
-      const validStatuses = ['selected', 'rejected', 'unsure', 'scheduled', 'pending', 'absent'];
-      if (!validStatuses.includes(statusValue)) {
-        console.error('Invalid status:', statusValue);
-        toast.error('Invalid status selected');
-        return;
-      }
+      // include existing entries for other domains so backend receives full list
+      const existingEntries = evaluatingApplicant?.pi?.entries && Array.isArray(evaluatingApplicant.pi.entries)
+        ? evaluatingApplicant.pi.entries
+        : [];
+      const otherDomainEntries = existingEntries.filter(en => String(en.domain).toLowerCase() !== String(domain).toLowerCase());
 
-      // Ensure all fields are strings and properly formatted
-      const piData = {
+      const newEntry = {
         status: String(statusValue),
-        datetime: new Date().toISOString(), // Format: 2025-09-18T16:17:18.689Z
-        remarks: remarksValue // Already ensured to be a string above
+        domain: domain,
+        remarks: remarksValue,
+        interviewer: interviewer,
+        datetime: new Date().toISOString() // include per-entry datetime if helpful
       };
 
-      console.log('PI Update Request Body:', piData);
+      const entriesToSend = [...otherDomainEntries, newEntry];
+
+      // Build payload to match required API body
+      const piPayload = {
+        entries: entriesToSend,
+        datetime: new Date().toISOString(),
+        status: String(statusValue)
+      };
+
+      console.log('PI Update Request Body:', piPayload);
       console.log('Email:', evaluatingApplicant.email);
 
-      const updatedApplicant = await apiClient.updateUserPI(evaluatingApplicant.email, piData);
+      const updatedApplicant = await apiClient.updateUserPI(evaluatingApplicant.email, piPayload);
 
-      // Update local state
-      setApplicants(prev => 
-        prev.map(a => 
-          a.email === evaluatingApplicant.email 
-            ? { ...a, pi: updatedApplicant.pi }
-            : a
-        )
+      // Merge updated PI into local state while preserving other domain entries
+      setApplicants(prev =>
+        prev.map(a => {
+          if (a.email !== evaluatingApplicant.email) return a;
+
+          const existingPI = a.pi || {};
+          const returnedPI = (updatedApplicant && updatedApplicant.pi) ? updatedApplicant.pi : {};
+
+          // If API didn't return a pi, fallback to constructing one from piPayload
+          const fallbackReturnedPI = Object.keys(returnedPI).length ? returnedPI : {
+            entries: piPayload.entries,
+            datetime: piPayload.datetime,
+            status: piPayload.status
+          };
+
+          const merged = mergePI(existingPI, fallbackReturnedPI);
+
+          return {
+            ...a,
+            pi: merged
+          };
+        })
       );
+
+      // Refresh from server to ensure consistent state across domains
+      // (keeps other domain pages in sync when they are visited)
+      try {
+        await fetchDomainApplicants();
+      } catch (err) {
+        // non-fatal: we already updated local state; just log
+        console.warn('Failed to refresh after PI update', err);
+      }
 
       toast.success(
         `${evaluatingApplicant.name} has been ${
-          decision === "select" ? "selected" : "rejected"
+          decision === "select" ? "selected" : decision === "reject" ? "rejected" : "marked unsure"
         } for ${domain} domain interview.`
       );
-      
+
       handleCloseEvaluation();
     } catch (error) {
       console.error("Error submitting evaluation:", error);
-      
-      // More detailed error handling
       let errorMessage = "Failed to submit evaluation. Please try again.";
-      
       if (error.message) {
         if (error.message.includes('422')) {
           errorMessage = "Validation error: Please check the data format. Make sure all fields are filled correctly.";
@@ -242,7 +309,6 @@ const DomainInterviewBase = ({ domain }) => {
           errorMessage = `Error: ${error.message}`;
         }
       }
-      
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);
@@ -546,120 +612,124 @@ const DomainInterviewBase = ({ domain }) => {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-                {filteredApplicants.map((applicant, index) => (
-                  <motion.div
-                    key={applicant.email}
-                    initial={false}
-                    animate={{ opacity: 1 }}
-                    transition={{ 
-                      duration: 0.1,
-                      ease: "easeOut"
-                    }}
-                    className="p-6 hover:bg-gray-50 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                          <User className="w-6 h-6 text-blue-600" />
+                {filteredApplicants.map((applicant) => {
+                  const piEntry = getPIEntry(applicant);
+
+                  return (
+                    <motion.div
+                      key={applicant.email}
+                      initial={false}
+                      animate={{ opacity: 1 }}
+                      transition={{ 
+                        duration: 0.1,
+                        ease: "easeOut"
+                      }}
+                      className="p-6 hover:bg-gray-50 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4 flex-1">
+                          <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                            <User className="w-6 h-6 text-blue-600" />
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                            {/* Basic Info */}
+                            <div className="space-y-1">
+                              <div className="font-semibold text-gray-900">{applicant.name}</div>
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <Mail className="w-3 h-3 mr-1" />
+                                {applicant.email}
+                              </div>
+                              <div className="text-sm text-gray-500">ID: {applicant.lib_id}</div>
+                            </div>
+                            
+                            {/* Academic Info */}
+                            <div className="space-y-1">
+                              <div className="text-sm text-gray-500">Department</div>
+                              <div className="font-medium text-gray-900">{applicant.branch}</div>
+                              <div className="text-sm text-gray-500">Year {applicant.year} • Group {applicant.groupNumber}</div>
+                            </div>
+                            
+                            {/* Previous Round Status */}
+                            <div className="space-y-1">
+                              <div className="text-sm text-gray-500">Previous Rounds</div>
+                              <div className="space-y-1">
+                                <div className="flex items-center">
+                                  <CheckCircle className="w-3 h-3 text-green-500 mr-1" />
+                                  <span className="text-xs text-green-700">GD: Selected</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <CheckCircle className="w-3 h-3 text-green-500 mr-1" />
+                                  <span className="text-xs text-green-700">Screening: Selected</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Interview Status */}
+                            <div className="space-y-1">
+                              <div className="text-sm text-gray-500">Interview Status</div>
+                              {piEntry && piEntry.status && piEntry.status !== "scheduled" ? (
+                                <div className="space-y-1">
+                                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                    piEntry.status === 'selected' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : piEntry.status === 'rejected'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {piEntry.status.charAt(0).toUpperCase() + piEntry.status.slice(1)}
+                                  </div>
+                                  {piEntry.datetime && (
+                                    <div className="text-xs text-gray-500">
+                                      {new Date(piEntry.datetime).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
-                          {/* Basic Info */}
-                          <div className="space-y-1">
-                            <div className="font-semibold text-gray-900">{applicant.name}</div>
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <Mail className="w-3 h-3 mr-1" />
-                              {applicant.email}
-                            </div>
-                            <div className="text-sm text-gray-500">ID: {applicant.lib_id}</div>
-                          </div>
-                          
-                          {/* Academic Info */}
-                          <div className="space-y-1">
-                            <div className="text-sm text-gray-500">Department</div>
-                            <div className="font-medium text-gray-900">{applicant.branch}</div>
-                            <div className="text-sm text-gray-500">Year {applicant.year} • Group {applicant.groupNumber}</div>
-                          </div>
-                          
-                          {/* Previous Round Status */}
-                          <div className="space-y-1">
-                            <div className="text-sm text-gray-500">Previous Rounds</div>
-                            <div className="space-y-1">
-                              <div className="flex items-center">
-                                <CheckCircle className="w-3 h-3 text-green-500 mr-1" />
-                                <span className="text-xs text-green-700">GD: Selected</span>
-                              </div>
-                              <div className="flex items-center">
-                                <CheckCircle className="w-3 h-3 text-green-500 mr-1" />
-                                <span className="text-xs text-green-700">Screening: Selected</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Interview Status */}
-                          <div className="space-y-1">
-                            <div className="text-sm text-gray-500">Interview Status</div>
-                            {applicant.pi?.status && applicant.pi.status !== "scheduled" ? (
-                              <div className="space-y-1">
-                                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                  applicant.pi.status === 'selected' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : applicant.pi.status === 'rejected'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {applicant.pi.status.charAt(0).toUpperCase() + applicant.pi.status.slice(1)}
-                                </div>
-                                {applicant.pi.datetime && (
-                                  <div className="text-xs text-gray-500">
-                                    {new Date(applicant.pi.datetime).toLocaleDateString()}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <Clock className="w-3 h-3 mr-1" />
-                                Pending
+                        {/* Action Button */}
+                        <div className="ml-4">
+                          <button
+                            onClick={() => handleOpenEvaluation(applicant)}
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm group-hover:shadow-md"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            {piEntry && piEntry.status && piEntry.status !== "scheduled" ? "Review" : "Interview"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Domain Preferences */}
+                      {(applicant.domain_pref_one || applicant.domain_pref_two) && (
+                        <div className="mt-4 pt-4 border-t border-gray-100">
+                          <div className="text-sm text-gray-500 mb-2">Domain Preferences</div>
+                          <div className="flex flex-wrap gap-2">
+                            {applicant.domain_pref_one && (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                <Target className="w-3 h-3 mr-1" />
+                                1st: {applicant.domain_pref_one.name}
+                              </span>
+                            )}
+                            {applicant.domain_pref_two && (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                <Target className="w-3 h-3 mr-1" />
+                                2nd: {applicant.domain_pref_two.name}
                               </span>
                             )}
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Action Button */}
-                      <div className="ml-4">
-                        <button
-                          onClick={() => handleOpenEvaluation(applicant)}
-                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm group-hover:shadow-md"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          {applicant.pi?.status && applicant.pi.status !== "scheduled" ? "Review" : "Interview"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Domain Preferences */}
-                    {(applicant.domain_pref_one || applicant.domain_pref_two) && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="text-sm text-gray-500 mb-2">Domain Preferences</div>
-                        <div className="flex flex-wrap gap-2">
-                          {applicant.domain_pref_one && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                              <Target className="w-3 h-3 mr-1" />
-                              1st: {applicant.domain_pref_one.name}
-                            </span>
-                          )}
-                          {applicant.domain_pref_two && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                              <Target className="w-3 h-3 mr-1" />
-                              2nd: {applicant.domain_pref_two.name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                      )}
+                    </motion.div>
+                  );
+                })}
             </div>
           )}
         </motion.div>
