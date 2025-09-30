@@ -65,9 +65,10 @@ const Dashboard = () => {
     const gdRejected = applicants.filter(a => a.gd?.status === "rejected").length;
     const gdScheduled = applicants.filter(a => a.gd?.status === "scheduled").length;
     const screeningSelected = applicants.filter(a => a.screening?.status === "selected").length;
-    const screeningRejected = applicants.filter(a => a.screening?.status === "rejected").length;
+    const screeningRejected = applicants.filter(a => a.gd?.status === "selected" && a.screening?.status === "rejected").length;
     const piSelected = applicants.filter(a => a.pi?.status === "selected").length;
-    const piRejected = applicants.filter(a => a.pi?.status === "rejected").length;
+    const piRejected = applicants.filter(a => a.gd?.status === "selected" && a.screening?.status === "selected" && a.pi?.status === "rejected").length;
+    const piUnsure = applicants.filter(a => a.gd?.status === "selected" && a.screening?.status === "selected" && a.pi?.status === "unsure").length;
     
     // Department breakdown
     const deptBreakdown = applicants.reduce((acc, app) => {
@@ -122,6 +123,7 @@ const Dashboard = () => {
       screeningRejected,
       piSelected,
       piRejected,
+      piUnsure,
       deptBreakdown,
       yearBreakdown,
       domainFirstPrefBreakdown,
@@ -202,9 +204,9 @@ const Dashboard = () => {
     );
   };
 
-  const ProcessCard = ({ stage, selected, rejected, absent, scheduled, total, colorScheme, icon: Icon }) => {
-    const pending = total - selected - rejected - (absent || 0) - (scheduled || 0);
-    const completionRate = total > 0 ? ((selected + rejected + (absent || 0)) / total * 100).toFixed(1) : 0;
+  const ProcessCard = ({ stage, selected, rejected, absent, scheduled, unsure, total, colorScheme, icon: Icon }) => {
+    const pending = total - selected - rejected - (absent || 0) - (scheduled || 0) - (unsure || 0);
+    const completionRate = total > 0 ? ((selected + rejected + (absent || 0) + (unsure || 0)) / total * 100).toFixed(1) : 0;
     
     const colorClasses = {
       blue: { bg: "bg-blue-100", text: "text-blue-600", progress: "bg-blue-600" },
@@ -242,6 +244,12 @@ const Dashboard = () => {
             <span className="text-sm text-gray-600">Rejected</span>
             <span className="font-medium text-red-600">{rejected}</span>
           </div>
+          {unsure > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Unsure</span>
+              <span className="font-medium text-purple-600">{unsure}</span>
+            </div>
+          )}
           {absent > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Absent</span>
@@ -417,7 +425,7 @@ const Dashboard = () => {
           delay={0.2}
         />
         <StatCard
-          title="Overall Conversion"
+          title="Selection Rate"
           value={`${stats.conversionRate || 0}%`}
           icon={TrendingUp}
           colorScheme="orange"
@@ -450,6 +458,7 @@ const Dashboard = () => {
             stage="Personal Interview"
             selected={stats.piSelected || 0}
             rejected={stats.piRejected || 0}
+            unsure={stats.piUnsure || 0}
             total={stats.screeningSelected || 0}
             colorScheme="purple"
             icon={Briefcase}
