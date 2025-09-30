@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target, Search } from "lucide-react";
+import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target, Search, X } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { apiClient } from "../../utils/apiConfig";
 
@@ -15,7 +15,8 @@ const BulkMail = () => {
   const [filterRound, setFilterRound] = useState("All");
   const [filterGroup, setFilterGroup] = useState("All");
   const [filterSlot, setFilterSlot] = useState("All"); // "All" | "assigned" | "unassigned"
-  const [filterDate, setFilterDate] = useState(""); // New: YYYY-MM-DD
+  const [filterDate, setFilterDate] = useState(""); // Selected slot date
+  const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -183,8 +184,20 @@ const BulkMail = () => {
       });
     }
     
+    // Filter by attendance status (isPresent parameter)
+    if (filterAttendance !== "All") {
+      filtered = filtered.filter(applicant => {
+        if (filterAttendance === "present") {
+          return applicant.isPresent === true;
+        } else if (filterAttendance === "absent") {
+          return applicant.isPresent === false;
+        }
+        return true;
+      });
+    }
+    
     setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate]);
+  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance]);
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
@@ -806,6 +819,18 @@ const BulkMail = () => {
       .sort((a, b) => a - b)
   )];
 
+  // Get unique slot dates from applicants (only dates where slots are assigned)
+  const uniqueSlotDates = (() => {
+    const dates = new Set();
+    applicants.forEach(applicant => {
+      const slotDate = getAssignedStartDateISO(applicant);
+      if (slotDate) {
+        dates.add(slotDate);
+      }
+    });
+    return Array.from(dates).sort();
+  })();
+
   // Round filter options
   const roundOptions = [
     { value: "All", label: "All Applicants" },
@@ -1129,9 +1154,24 @@ const BulkMail = () => {
               </select>
             </div>
 
+            {/* Attendance Filter */}
+            <div className="mt-3 md:mt-0">
+              <h3 className="font-medium text-gray-700 mb-3">Attendance Status</h3>
+              <select
+                value={filterAttendance}
+                onChange={(e) => setFilterAttendance(e.target.value)}
+                className="w-full md:w-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-white"
+                title="Filter by attendance status"
+              >
+                <option value="All">All Students ({applicants.length})</option>
+                <option value="present">Present ({applicants.filter(a => a.isPresent === true).length})</option>
+                <option value="absent">Absent ({applicants.filter(a => a.isPresent === false).length})</option>
+              </select>
+            </div>
+
             {/* Slot Assignment Filter (side of Group dropdown) */}
             <div className="mt-3 md:mt-0">
-              <h3 className="font-medium text-gray-700 mb-3">Slot Assignment</h3>
+              <h3 className="font-medium text-gray-700 mb-3">Slot Status & Date</h3>
               <select
                 value={filterSlot}
                 onChange={(e) => setFilterSlot(e.target.value)}
@@ -1143,22 +1183,32 @@ const BulkMail = () => {
                 <option value="unassigned">Unassigned Slot</option>
               </select>
 
-              {/* Date filter for slots */}
-              <div className="mt-3 flex items-center space-x-2">
-                <input
-                  type="date"
+              {/* Slot Date Filter Dropdown */}
+              <div className="mt-3">
+                <select
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  className="w-full md:w-48 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  title="Show applicants with slot / GD on this date"
-                />
-                {filterDate && (
-                  <button
-                    onClick={() => setFilterDate("")}
-                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                  >
-                    Clear
-                  </button>
+                  className="w-full md:w-48 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                  title="Filter by slot assignment date"
+                >
+                  <option value="">All Slot Dates</option>
+                  {uniqueSlotDates.map((date) => {
+                    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                    const count = applicants.filter(a => getAssignedStartDateISO(a) === date).length;
+                    return (
+                      <option key={date} value={date}>
+                        {formattedDate} ({count} slots)
+                      </option>
+                    );
+                  })}
+                </select>
+                {uniqueSlotDates.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No slot dates available</p>
                 )}
               </div>
             </div>
@@ -1803,12 +1853,30 @@ const BulkMail = () => {
                             <div className="text-sm text-gray-500">ID: {applicant.lib_id || 'N/A'}</div>
                           </div>
                           
-                          {/* Academic Info */}
+                          {/* Academic Info & Attendance */}
                           <div className="space-y-1">
                             <div className="text-sm text-gray-500">Department</div>
                             <div className="font-medium text-gray-900">{applicant.branch}</div>
                             <div className="text-sm text-gray-500">
                               Year {applicant.year} {applicant.groupNumber && `• Group ${applicant.groupNumber}`}
+                            </div>
+                            <div className="mt-2">
+                              {applicant.isPresent === true ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Present
+                                </span>
+                              ) : applicant.isPresent === false ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                  <X className="w-3 h-3 mr-1" />
+                                  Absent
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  No Record
+                                </span>
+                              )}
                             </div>
                           </div>
                           
