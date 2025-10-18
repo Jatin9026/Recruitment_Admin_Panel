@@ -40,6 +40,7 @@ const menuItems = [
       { path: "/interview/events", label: "Events" },
     ],
   },
+  { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
   { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
   { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
   { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
@@ -108,6 +109,15 @@ export default function Sidebar() {
 
   const userHasAccess = (roles) => {
     if (!user?.role) return false;
+    // If roles is not provided, treat as public (allow). If it's malformed, deny and warn.
+    if (roles == null) return true;
+    if (!Array.isArray(roles)) {
+      // helpful debug info during development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Sidebar: expected roles to be an array but got', roles);
+      }
+      return false;
+    }
     return roles.includes(user.role);
   };
 

@@ -17,6 +17,7 @@ const BulkMail = () => {
   const [filterSlot, setFilterSlot] = useState("All"); // "All" | "assigned" | "unassigned"
   const [filterDate, setFilterDate] = useState(""); // Selected slot date
   const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
+  const [filterPI, setFilterPI] = useState("All"); // "All" | "pi_selected_unsure"
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -37,6 +38,20 @@ const BulkMail = () => {
   const [templateProps, setTemplateProps] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [showPayload, setShowPayload] = useState(false);
+
+  // Helper: get PI entry for a specific domain (case-insensitive)
+  const getPIEntryForDomain = (applicant, domainName) => {
+    if (!domainName || !applicant?.pi?.entries || !Array.isArray(applicant.pi.entries)) return null;
+    return applicant.pi.entries.find(e => String(e.domain).toLowerCase() === String(domainName).toLowerCase()) || null;
+  };
+
+  // Map PI status -> classes (including rejected)
+  const piStatusClasses = {
+    selected: "bg-green-100 text-green-800 border-green-200",
+    unsure: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    rejected: "bg-red-100 text-red-800 border-red-200",
+    default: "bg-gray-100 text-gray-700 border-gray-200"
+  };
 
   useEffect(() => {
     // Multiple approaches to ensure scroll to top works
@@ -125,13 +140,21 @@ const BulkMail = () => {
       );
     }
     
-    // Filter by domain
+    // Filter by domain (if PI filter is set to pi_selected_unsure and a domain chosen,
+    // only include applicants who have a PI entry for that domain with selected/unsure)
     if (filterDomain !== "All") {
-      filtered = filtered.filter(applicant => 
-        applicant.domains && applicant.domains.includes(filterDomain)
-      );
+      filtered = filtered.filter(applicant => {
+        const hasDomain = applicant.domains && applicant.domains.includes(filterDomain);
+        if (!hasDomain) return false;
+        if (filterPI === "pi_selected_unsure") {
+          const entry = getPIEntryForDomain(applicant, filterDomain);
+          return entry && (entry.status === "selected" || entry.status === "unsure");
+        }
+        return true;
+      });
     }
-    
+
+    // When domain filter isn't selected, filterPI still works globally (existing logic)
     // Filter by round selection status
     if (filterRound !== "All") {
       filtered = filtered.filter(applicant => {
@@ -195,9 +218,18 @@ const BulkMail = () => {
         return true;
       });
     }
+
+    // Filter by PI selected/unsure (global) - only applied if domain-specific logic above didn't run
+    if (filterPI === "pi_selected_unsure" && filterDomain === "All") {
+      filtered = filtered.filter(applicant => {
+        const entries = applicant?.pi?.entries;
+        if (!Array.isArray(entries)) return false;
+        return entries.some(e => e && (e.status === "selected" || e.status === "unsure"));
+      });
+    }
     
     setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance]);
+  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance, filterPI]);
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
@@ -864,8 +896,7 @@ const BulkMail = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
-      opacity: 1,
-      y: 0,
+      opacity: 1, y: 0,
       transition: { duration: 0.5 }
     }
   };
@@ -1095,6 +1126,7 @@ const BulkMail = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setFilterDomain(domain)}
+                  title={domain === "All" ? 'All domains' : `Show applicants for ${domain}`}
                   className={`px-3 py-2 rounded-lg font-medium transition text-sm ${
                     filterDomain === domain
                       ? "bg-blue-600 text-white shadow-md"
@@ -1105,6 +1137,19 @@ const BulkMail = () => {
                 </motion.button>
               ))}
             </div>
+          </div>
+
+          {/* PI Filter */}
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 mb-3">PI Filter</h3>
+            <select
+              value={filterPI}
+              onChange={(e) => setFilterPI(e.target.value)}
+              className="w-full md:w-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+            >
+              <option value="All">All PI Status</option>
+              <option value="pi_selected_unsure">PI: Selected or Unsure</option>
+            </select>
           </div>
 
           {/* Round Filter */}
@@ -1930,11 +1975,16 @@ const BulkMail = () => {
                             <div className="text-sm text-gray-500">Domain Preferences</div>
                             {applicant.domains && applicant.domains.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {applicant.domains.slice(0, 2).map((domain, idx) => (
-                                  <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                    {domain}
-                                  </span>
-                                ))}
+                                {applicant.domains.slice(0, 2).map((domain, idx) => {
+                                  const entry = getPIEntryForDomain(applicant, domain);
+                                  const status = entry?.status || 'default';
+                                  const cls = piStatusClasses[status] || piStatusClasses.default;
+                                  return (
+                                    <span key={idx} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${cls}`}>
+                                      {domain}
+                                    </span>
+                                  );
+                                })}
                                 {applicant.domains.length > 2 && (
                                   <span className="text-xs text-gray-500">+{applicant.domains.length - 2} more</span>
                                 )}
