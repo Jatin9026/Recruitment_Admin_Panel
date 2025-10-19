@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, Mail, FileText, Users, Plus, Minus, Send, Eye, EyeOff, RefreshCw, BarChart3, TrendingUp, User, Calendar, Target, Search, X } from "lucide-react";
@@ -8,16 +8,22 @@ import { apiClient } from "../../utils/apiConfig";
 const BulkMail = () => {
   const location = useLocation();
   const [applicants, setApplicants] = useState([]);
-  const [filteredApplicants, setFilteredApplicants] = useState([]);
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [filterDomain, setFilterDomain] = useState("All");
   const [filterRound, setFilterRound] = useState("All");
   const [filterGroup, setFilterGroup] = useState("All");
   const [filterSlot, setFilterSlot] = useState("All"); // "All" | "assigned" | "unassigned"
   const [filterDate, setFilterDate] = useState(""); // Selected slot date
+  const [filterTime, setFilterTime] = useState(""); // Selected slot time
   const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
+<<<<<<< HEAD
   const [filterPI, setFilterPI] = useState("All"); // "All" | "pi_selected_unsure"
+=======
+  const [filterPIStatus, setFilterPIStatus] = useState("All"); // "All" | "selected_unsure" | "selected" | "unsure" | "rejected" | "pending"
+>>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -39,6 +45,7 @@ const BulkMail = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [showPayload, setShowPayload] = useState(false);
 
+<<<<<<< HEAD
   // Helper: get PI entry for a specific domain (case-insensitive)
   const getPIEntryForDomain = (applicant, domainName) => {
     if (!domainName || !applicant?.pi?.entries || !Array.isArray(applicant.pi.entries)) return null;
@@ -52,6 +59,16 @@ const BulkMail = () => {
     rejected: "bg-red-100 text-red-800 border-red-200",
     default: "bg-gray-100 text-gray-700 border-gray-200"
   };
+=======
+  const taskLinks = [ 
+    { label: "Technical",           url: "https://docs.google.com/document/d/11H8UfVfkIcp0puwkh9q5ik1Nlbfy9oLGvkQo_pQJdkM/edit?usp=sharing" },
+    { label: "Events",              url: "https://docs.google.com/document/d/1IVYxBRJGagZni85Gtz76cg5liCNr-Z32naB92oqzzL8/edit?usp=sharing" },
+    { label: "Graphics",            url: "https://docs.google.com/document/d/13MIkvuoaV98kZA6kXY7M3I4nHhaTKKlgKHwqWxb6qSA/edit?usp=sharing" },
+    { label: "Public Relations",    url: "https://docs.google.com/document/d/1iCAKdz__n_eSF7NS-iy-1SgQiWejaEKDkpLxZ0bIvKA/edit?usp=sharing" },
+    { label: "Corporate Relations", url: "https://docs.google.com/document/d/1D4gjaY_Ix33X5riLBF9ZnrLYxFXSr7fhBQ0e7Sngi7w/edit?usp=sharing" },
+    { label: "None",                url: "https://docs.google.com/document/d/1soXfJ-wMQ1edTCghnIDv0y6dFMkeTnFEUXF6gHeOMS8/edit?usp=sharing" }
+  ]
+>>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
 
   useEffect(() => {
     // Multiple approaches to ensure scroll to top works
@@ -63,6 +80,27 @@ const BulkMail = () => {
   useEffect(() => {
     fetchAllApplicants();
     fetchEmailTemplates();
+  }, []);
+
+  // Debounce search query to improve performance
+  useEffect(() => {
+    if (searchQuery !== debouncedSearchQuery) {
+      setIsSearching(true);
+    }
+    
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setIsSearching(false);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearchQuery]);
+
+  // Optimized search clear function
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+    setIsSearching(false);
   }, []);
 
   const fetchEmailTemplates = async () => {
@@ -110,7 +148,6 @@ const BulkMail = () => {
       });
       
       setApplicants(sortedApplicants);
-      setFilteredApplicants(sortedApplicants);
     } catch (error) {
       console.error("Error fetching applicants:", error);
       toast.error("Failed to load applicants");
@@ -126,13 +163,13 @@ const BulkMail = () => {
     }
   };
 
-  // Filter applicants by search, domain, round, and group
-  useEffect(() => {
+  // Memoized filtering function for better performance
+  const filteredApplicants = useMemo(() => {
     let filtered = applicants;
     
-    // Filter by search query (name, email, or lib_id)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    // Filter by search query (name, email, or lib_id) - using debounced search
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
       filtered = filtered.filter(applicant => 
         (applicant.name && applicant.name.toLowerCase().includes(query)) ||
         (applicant.email && applicant.email.toLowerCase().includes(query)) ||
@@ -162,7 +199,7 @@ const BulkMail = () => {
           case "screening_selected":
             return applicant.screening && applicant.screening.status === "selected";
           case "gd_scheduled":
-            return applicant.gd && applicant.gd.status === "scheduled"; // Check for scheduled status
+            return applicant.gd && applicant.gd.status === "scheduled";
           case "gd_selected":
             return applicant.gd && applicant.gd.status === "selected";
           case "pi_selected":
@@ -199,11 +236,41 @@ const BulkMail = () => {
       }
     }
     
-    // Filter by selected date (match assignedSlot start date OR GD datetime date)
+    // Filter by selected date (match assignedSlot start date)
     if (filterDate) {
       filtered = filtered.filter(applicant => {
         const slotDate = getAssignedStartDateISO(applicant);
         return slotDate === filterDate;
+      });
+    }
+    
+    // Filter by selected time range (only check assignedSlot)
+    if (filterTime) {
+      filtered = filtered.filter(applicant => {
+        try {
+          if (applicant?.assignedSlot && typeof applicant.assignedSlot === "string") {
+            const [startTimeStr, endTimeStr] = applicant.assignedSlot.split(' - ');
+            if (startTimeStr && endTimeStr) {
+              const startTime = new Date(startTimeStr).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'Asia/Kolkata'
+              });
+              const endTime = new Date(endTimeStr).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'Asia/Kolkata'
+              });
+              const timeRange = `${startTime} - ${endTime}`;
+              return timeRange === filterTime;
+            }
+          }
+          return false;
+        } catch {
+          return false;
+        }
       });
     }
     
@@ -228,8 +295,36 @@ const BulkMail = () => {
       });
     }
     
+<<<<<<< HEAD
     setFilteredApplicants(filtered);
   }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance, filterPI]);
+=======
+    // Filter by PI status (selected/unsure/rejected/pending)
+    if (filterPIStatus !== "All") {
+      filtered = filtered.filter(applicant => {
+        const piStatus = applicant.pi?.status;
+        
+        switch (filterPIStatus) {
+          case "selected_unsure":
+            // Show students who are either selected OR unsure in PI
+            return piStatus === "selected" || piStatus === "unsure";
+          case "selected":
+            return piStatus === "selected";
+          case "unsure":
+            return piStatus === "unsure";
+          case "rejected":
+            return piStatus === "rejected";
+          case "pending":
+            return !piStatus || piStatus === "pending" || piStatus === "scheduled";
+          default:
+            return true;
+        }
+      });
+    }
+    
+    return filtered;
+  }, [applicants, debouncedSearchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterTime, filterAttendance, filterPIStatus]);
+>>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
@@ -419,6 +514,16 @@ const BulkMail = () => {
       filteredApplicants.find(a => a.email === email)
     ).filter(Boolean); // Remove any undefined entries
 
+    // Debug: Log applicant data to check PI entries
+    // console.log('Selected Applicant Data:', selectedApplicantData);
+    // console.log('Template Props:', templateProps);
+    // console.log('Task Links:', taskLinks);
+    // if (selectedApplicantData.length > 0) {
+    //   console.log('First applicant PI data:', selectedApplicantData[0]?.pi);
+    //   console.log('First applicant PI entries:', selectedApplicantData[0]?.pi?.entries);
+    //   console.log('Full first applicant:', selectedApplicantData[0]);
+    // }
+
     // Create custom data object according to API specification
     const customData = {};
     
@@ -523,6 +628,48 @@ const BulkMail = () => {
           case 'libraryid':
             // Use applicant's library ID
             customData[prop.key] = selectedApplicantData.map(a => a.lib_id || a.libraryId || "");
+            break;
+          case 'domain1':
+            // First domain from PI entries (selected/unsure), or "None" placeholder
+            customData[prop.key] = selectedApplicantData.map(a => {
+              const piEntries = a.pi?.entries || [];
+              const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+              return selectedOrUnsure.length > 0 ? selectedOrUnsure[0].domain : "None";
+            });
+            break;
+          case 'domain2':
+            // Second domain from PI entries (selected/unsure), or "None" placeholder
+            customData[prop.key] = selectedApplicantData.map(a => {
+              const piEntries = a.pi?.entries || [];
+              const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+              return selectedOrUnsure.length > 1 ? selectedOrUnsure[1].domain : "None";
+            });
+            break;
+          case 'link1':
+            // Task link for first domain (selected/unsure), or None link as placeholder
+            customData[prop.key] = selectedApplicantData.map(a => {
+              const piEntries = a.pi?.entries || [];
+              const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+              if (selectedOrUnsure.length > 0) {
+                const domain = selectedOrUnsure[0].domain;
+                const taskLink = taskLinks.find(t => t.label === domain);
+                return taskLink ? taskLink.url : taskLinks.find(t => t.label === "None")?.url || "";
+              }
+              return taskLinks.find(t => t.label === "None")?.url || "";
+            });
+            break;
+          case 'link2':
+            // Task link for second domain (selected/unsure), or None link as placeholder
+            customData[prop.key] = selectedApplicantData.map(a => {
+              const piEntries = a.pi?.entries || [];
+              const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+              if (selectedOrUnsure.length > 1) {
+                const domain = selectedOrUnsure[1].domain;
+                const taskLink = taskLinks.find(t => t.label === domain);
+                return taskLink ? taskLink.url : taskLinks.find(t => t.label === "None")?.url || "";
+              }
+              return taskLinks.find(t => t.label === "None")?.url || "";
+            });
             break;
           default:
             // For any other custom variable, use the provided value for all recipients
@@ -645,6 +792,48 @@ const BulkMail = () => {
             case 'lib_id':
             case 'libraryid':
               customData[prop.key] = batchApplicantData.map(a => a.lib_id || a.libraryId || "");
+              break;
+            case 'domain1':
+              // First domain from PI entries (selected/unsure), or "None" placeholder
+              customData[prop.key] = batchApplicantData.map(a => {
+                const piEntries = a.pi?.entries || [];
+                const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+                return selectedOrUnsure.length > 0 ? selectedOrUnsure[0].domain : "None";
+              });
+              break;
+            case 'domain2':
+              // Second domain from PI entries (selected/unsure), or "None" placeholder
+              customData[prop.key] = batchApplicantData.map(a => {
+                const piEntries = a.pi?.entries || [];
+                const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+                return selectedOrUnsure.length > 1 ? selectedOrUnsure[1].domain : "None";
+              });
+              break;
+            case 'link1':
+              // Task link for first domain (selected/unsure), or None link as placeholder
+              customData[prop.key] = batchApplicantData.map(a => {
+                const piEntries = a.pi?.entries || [];
+                const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+                if (selectedOrUnsure.length > 0) {
+                  const domain = selectedOrUnsure[0].domain;
+                  const taskLink = taskLinks.find(t => t.label === domain);
+                  return taskLink ? taskLink.url : taskLinks.find(t => t.label === "None")?.url || "";
+                }
+                return taskLinks.find(t => t.label === "None")?.url || "";
+              });
+              break;
+            case 'link2':
+              // Task link for second domain (selected/unsure), or None link as placeholder
+              customData[prop.key] = batchApplicantData.map(a => {
+                const piEntries = a.pi?.entries || [];
+                const selectedOrUnsure = piEntries.filter(e => e.status === "selected" || e.status === "unsure");
+                if (selectedOrUnsure.length > 1) {
+                  const domain = selectedOrUnsure[1].domain;
+                  const taskLink = taskLinks.find(t => t.label === domain);
+                  return taskLink ? taskLink.url : taskLinks.find(t => t.label === "None")?.url || "";
+                }
+                return taskLinks.find(t => t.label === "None")?.url || "";
+              });
               break;
             default:
               customData[prop.key] = batchApplicantData.map(() => prop.value || "");
@@ -863,6 +1052,46 @@ const BulkMail = () => {
     return Array.from(dates).sort();
   })();
 
+  // Predefined slot time ranges (only check assignedSlot, not GD datetime)
+  const predefinedSlotTimeRanges = [
+    "05:00 PM - 05:30 PM",
+    "05:30 PM - 06:00 PM", 
+    "05:30 PM - 06:30 PM",
+    "06:00 PM - 06:30 PM",
+    "06:30 PM - 07:00 PM",
+    "07:00 PM - 07:30 PM"
+  ];
+
+  // Get only the predefined time slots that have applicants assigned
+  const availableSlotTimeRanges = predefinedSlotTimeRanges.filter(timeRange => {
+    return applicants.some(applicant => {
+      try {
+        if (applicant?.assignedSlot && typeof applicant.assignedSlot === "string") {
+          const [startTimeStr, endTimeStr] = applicant.assignedSlot.split(' - ');
+          if (startTimeStr && endTimeStr) {
+            const startTime = new Date(startTimeStr).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'Asia/Kolkata'
+            });
+            const endTime = new Date(endTimeStr).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'Asia/Kolkata'
+            });
+            const applicantTimeRange = `${startTime} - ${endTime}`;
+            return applicantTimeRange === timeRange;
+          }
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    });
+  });
+
   // Round filter options
   const roundOptions = [
     { value: "All", label: "All Applicants" },
@@ -1080,7 +1309,15 @@ const BulkMail = () => {
           <div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-3">Search Applicants</h3>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              {isSearching ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"
+                />
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              )}
               <motion.input
                 type="text"
                 placeholder="Search by name, email, or library ID..."
@@ -1095,20 +1332,23 @@ const BulkMail = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setSearchQuery("")}
+                  onClick={clearSearch}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   ✕
                 </motion.button>
               )}
             </div>
-            {searchQuery && (
+            {(debouncedSearchQuery || isSearching) && (
               <motion.p
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-sm text-blue-600 mt-2"
+                className={`text-sm mt-2 ${isSearching ? 'text-blue-500' : 'text-blue-600'}`}
               >
-                Found {filteredApplicants.length} applicant{filteredApplicants.length !== 1 ? 's' : ''} matching "{searchQuery}"
+                {isSearching 
+                  ? `Searching for "${searchQuery}"...`
+                  : `Found ${filteredApplicants.length} applicant${filteredApplicants.length !== 1 ? 's' : ''} matching "${debouncedSearchQuery}"`
+                }
               </motion.p>
             )}
           </div>
@@ -1214,9 +1454,37 @@ const BulkMail = () => {
               </select>
             </div>
 
+            {/* PI Status Filter */}
+            <div className="mt-3 md:mt-0">
+              <h3 className="font-medium text-gray-700 mb-3">PI Interview Status</h3>
+              <select
+                value={filterPIStatus}
+                onChange={(e) => setFilterPIStatus(e.target.value)}
+                className="w-full md:w-56 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+                title="Filter by Personal Interview status"
+              >
+                <option value="All">All PI Status ({applicants.length})</option>
+                <option value="selected_unsure">
+                  Selected/Unsure ({applicants.filter(a => a.pi?.status === "selected" || a.pi?.status === "unsure").length})
+                </option>
+                <option value="selected">
+                  Selected Only ({applicants.filter(a => a.pi?.status === "selected").length})
+                </option>
+                <option value="unsure">
+                  Unsure Only ({applicants.filter(a => a.pi?.status === "unsure").length})
+                </option>
+                <option value="rejected">
+                  Rejected ({applicants.filter(a => a.pi?.status === "rejected").length})
+                </option>
+                <option value="pending">
+                  Pending/Not Interviewed ({applicants.filter(a => !a.pi?.status || a.pi?.status === "pending" || a.pi?.status === "scheduled").length})
+                </option>
+              </select>
+            </div>
+
             {/* Slot Assignment Filter (side of Group dropdown) */}
             <div className="mt-3 md:mt-0">
-              <h3 className="font-medium text-gray-700 mb-3">Slot Status & Date</h3>
+              <h3 className="font-medium text-gray-700 mb-3">Slot Status, Date & Time</h3>
               <select
                 value={filterSlot}
                 onChange={(e) => setFilterSlot(e.target.value)}
@@ -1254,6 +1522,55 @@ const BulkMail = () => {
                 </select>
                 {uniqueSlotDates.length === 0 && (
                   <p className="text-xs text-gray-500 mt-1">No slot dates available</p>
+                )}
+              </div>
+
+              {/* Slot Time Range Filter Dropdown */}
+              <div className="mt-3">
+                <select
+                  value={filterTime}
+                  onChange={(e) => setFilterTime(e.target.value)}
+                  className="w-full md:w-56 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                  title="Filter by slot time range (start - end)"
+                >
+                  <option value="">All Time Ranges</option>
+                  {availableSlotTimeRanges.map((timeRange) => {
+                    const count = applicants.filter(a => {
+                      try {
+                        // Only check assignedSlot time range
+                        if (a?.assignedSlot && typeof a.assignedSlot === "string") {
+                          const [startTimeStr, endTimeStr] = a.assignedSlot.split(' - ');
+                          if (startTimeStr && endTimeStr) {
+                            const startTime = new Date(startTimeStr).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true,
+                              timeZone: 'Asia/Kolkata'
+                            });
+                            const endTime = new Date(endTimeStr).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true,
+                              timeZone: 'Asia/Kolkata'
+                            });
+                            const applicantTimeRange = `${startTime} - ${endTime}`;
+                            return applicantTimeRange === timeRange;
+                          }
+                        }
+                        return false;
+                      } catch {
+                        return false;
+                      }
+                    }).length;
+                    return (
+                      <option key={timeRange} value={timeRange}>
+                        {timeRange} ({count} slots)
+                      </option>
+                    );
+                  })}
+                </select>
+                {availableSlotTimeRanges.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">No time ranges available</p>
                 )}
               </div>
             </div>
