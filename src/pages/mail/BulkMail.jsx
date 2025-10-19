@@ -19,11 +19,7 @@ const BulkMail = () => {
   const [filterDate, setFilterDate] = useState(""); // Selected slot date
   const [filterTime, setFilterTime] = useState(""); // Selected slot time
   const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
-<<<<<<< HEAD
-  const [filterPI, setFilterPI] = useState("All"); // "All" | "pi_selected_unsure"
-=======
   const [filterPIStatus, setFilterPIStatus] = useState("All"); // "All" | "selected_unsure" | "selected" | "unsure" | "rejected" | "pending"
->>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -45,21 +41,6 @@ const BulkMail = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [showPayload, setShowPayload] = useState(false);
 
-<<<<<<< HEAD
-  // Helper: get PI entry for a specific domain (case-insensitive)
-  const getPIEntryForDomain = (applicant, domainName) => {
-    if (!domainName || !applicant?.pi?.entries || !Array.isArray(applicant.pi.entries)) return null;
-    return applicant.pi.entries.find(e => String(e.domain).toLowerCase() === String(domainName).toLowerCase()) || null;
-  };
-
-  // Map PI status -> classes (including rejected)
-  const piStatusClasses = {
-    selected: "bg-green-100 text-green-800 border-green-200",
-    unsure: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    rejected: "bg-red-100 text-red-800 border-red-200",
-    default: "bg-gray-100 text-gray-700 border-gray-200"
-  };
-=======
   const taskLinks = [ 
     { label: "Technical",           url: "https://docs.google.com/document/d/11H8UfVfkIcp0puwkh9q5ik1Nlbfy9oLGvkQo_pQJdkM/edit?usp=sharing" },
     { label: "Events",              url: "https://docs.google.com/document/d/1IVYxBRJGagZni85Gtz76cg5liCNr-Z32naB92oqzzL8/edit?usp=sharing" },
@@ -68,7 +49,6 @@ const BulkMail = () => {
     { label: "Corporate Relations", url: "https://docs.google.com/document/d/1D4gjaY_Ix33X5riLBF9ZnrLYxFXSr7fhBQ0e7Sngi7w/edit?usp=sharing" },
     { label: "None",                url: "https://docs.google.com/document/d/1soXfJ-wMQ1edTCghnIDv0y6dFMkeTnFEUXF6gHeOMS8/edit?usp=sharing" }
   ]
->>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
 
   useEffect(() => {
     // Multiple approaches to ensure scroll to top works
@@ -295,10 +275,6 @@ const BulkMail = () => {
       });
     }
     
-<<<<<<< HEAD
-    setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance, filterPI]);
-=======
     // Filter by PI status (selected/unsure/rejected/pending)
     if (filterPIStatus !== "All") {
       filtered = filtered.filter(applicant => {
@@ -324,7 +300,6 @@ const BulkMail = () => {
     
     return filtered;
   }, [applicants, debouncedSearchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterTime, filterAttendance, filterPIStatus]);
->>>>>>> c221bbc (feat: improved bulk mail component UI and functionality)
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
