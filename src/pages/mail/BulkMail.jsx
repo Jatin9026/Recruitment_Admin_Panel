@@ -21,7 +21,6 @@ const BulkMail = () => {
   const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
   const [filterPI, setFilterPI] = useState("All"); // "All" | "pi_selected_unsure"
   const [filterPIStatus, setFilterPIStatus] = useState("All"); // "All" | "selected_unsure" | "selected" | "unsure" | "rejected" | "pending"
->>>>>>> 0bb23ab765e044096129391b54ea20cc7c0abd44
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -180,7 +179,7 @@ const BulkMail = () => {
       filtered = filtered.filter(applicant => {
         const hasDomain = applicant.domains && applicant.domains.includes(filterDomain);
         if (!hasDomain) return false;
-        if (filterPIState === "pi_selected_unsure") {
+        if (filterPI === "pi_selected_unsure") {
           const entry = getPIEntryForDomain(applicant, filterDomain);
           return entry && (entry.status === "selected" || entry.status === "unsure");
         }
@@ -284,7 +283,7 @@ const BulkMail = () => {
     }
 
     // Filter by PI selected/unsure (global) - only applied if domain-specific logic above didn't run
-    if (filterPIState === "pi_selected_unsure" && filterDomain === "All") {
+    if (filterPI === "pi_selected_unsure" && filterDomain === "All") {
       filtered = filtered.filter(applicant => {
         const entries = applicant?.pi?.entries;
         if (!Array.isArray(entries)) return false;
@@ -292,10 +291,6 @@ const BulkMail = () => {
       });
     }
     
-<<<<<<< HEAD
-    setFilteredApplicants(filtered);
-  }, [applicants, searchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterAttendance, filterPIState]);
-=======
     // Filter by PI status (selected/unsure/rejected/pending)
     if (filterPIStatus !== "All") {
       filtered = filtered.filter(applicant => {
@@ -1379,10 +1374,9 @@ const BulkMail = () => {
           {/*<div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-3">PI Filter</h3>
             <select
-              value={filterPIState}
-              onChange={(e) => setFilterPIState(e.target.value)}
+              value={filterPI}
+              onChange={(e) => setFilterPI(e.target.value)}
               className="w-full md:w-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-              title="Filter by PI status"
             >
               <option value="All">All PI Status</option>
               <option value="pi_selected_unsure">PI: Selected or Unsure</option>
