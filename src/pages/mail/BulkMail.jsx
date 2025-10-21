@@ -19,6 +19,7 @@ const BulkMail = () => {
   const [filterDate, setFilterDate] = useState(""); // Selected slot date
   const [filterTime, setFilterTime] = useState(""); // Selected slot time
   const [filterAttendance, setFilterAttendance] = useState("All"); // "All" | "present" | "absent"
+  const [filterPI, setFilterPI] = useState("All"); // "All" | "pi_selected_unsure"
   const [filterPIStatus, setFilterPIStatus] = useState("All"); // "All" | "selected_unsure" | "selected" | "unsure" | "rejected" | "pending"
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,6 +50,15 @@ const BulkMail = () => {
     { label: "Corporate Relations", url: "https://docs.google.com/document/d/1D4gjaY_Ix33X5riLBF9ZnrLYxFXSr7fhBQ0e7Sngi7w/edit?usp=sharing" },
     { label: "None",                url: "https://docs.google.com/document/d/1soXfJ-wMQ1edTCghnIDv0y6dFMkeTnFEUXF6gHeOMS8/edit?usp=sharing" }
   ]
+
+  // PI Status badge styling classes
+  const piStatusClasses = {
+    selected: "bg-green-100 text-green-800 border border-green-200",
+    unsure: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+    rejected: "bg-red-100 text-red-800 border border-red-200",
+    pending: "bg-gray-100 text-gray-800 border border-gray-200",
+    default: "bg-blue-100 text-blue-800 border border-blue-200"
+  }
 
   useEffect(() => {
     // Multiple approaches to ensure scroll to top works
@@ -141,6 +151,12 @@ const BulkMail = () => {
         document.body.scrollTop = 0;
       }, 100);
     }
+  };
+
+  // Helper function to get PI entry for a specific domain
+  const getPIEntryForDomain = (applicant, domain) => {
+    if (!applicant.pi || !applicant.pi.entries) return null;
+    return applicant.pi.entries.find(entry => entry.domain === domain);
   };
 
   // Memoized filtering function for better performance
@@ -299,7 +315,7 @@ const BulkMail = () => {
     }
     
     return filtered;
-  }, [applicants, debouncedSearchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterTime, filterAttendance, filterPIStatus]);
+  }, [applicants, debouncedSearchQuery, filterDomain, filterRound, filterGroup, filterSlot, filterDate, filterTime, filterAttendance, filterPI, filterPIStatus]);
 
   // Helper to parse assignedSlot (same format used by SlotAttendance)
   const parseAssignedSlot = (slotString) => {
@@ -1355,7 +1371,7 @@ const BulkMail = () => {
           </div>
 
           {/* PI Filter */}
-          <div className="mb-6">
+          {/*<div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-3">PI Filter</h3>
             <select
               value={filterPI}
@@ -1365,7 +1381,7 @@ const BulkMail = () => {
               <option value="All">All PI Status</option>
               <option value="pi_selected_unsure">PI: Selected or Unsure</option>
             </select>
-          </div>
+          </div>*/}
 
           {/* Round Filter */}
           <div className="mb-6">
