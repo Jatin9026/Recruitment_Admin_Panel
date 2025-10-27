@@ -169,23 +169,65 @@ const TaskList = () => {
   });
 
   const stats = React.useMemo(() => {
-    const selected = filteredApplicants.filter(app => {
+    // Count students by PI status (using pi.status, not entries)
+    const selected = filteredApplicants.filter(app => app?.pi?.status === 'selected').length;
+    const unsure = filteredApplicants.filter(app => app?.pi?.status === 'unsure').length;
+
+    // Count how many students should have 1 task vs 2 tasks based on PI entries
+    const shouldHaveOneDomain = filteredApplicants.filter(app => {
       const entries = app?.pi?.entries;
       if (!Array.isArray(entries)) return false;
-      return entries.some(e => e?.status === 'selected');
+      const selectedOrUnsure = entries.filter(e => e.status === "selected" || e.status === "unsure");
+      return selectedOrUnsure.length === 1;
     }).length;
 
-    const unsure = filteredApplicants.filter(app => {
+    const shouldHaveTwoDomains = filteredApplicants.filter(app => {
       const entries = app?.pi?.entries;
       if (!Array.isArray(entries)) return false;
-      return entries.some(e => e?.status === 'unsure');
+      const selectedOrUnsure = entries.filter(e => e.status === "selected" || e.status === "unsure");
+      return selectedOrUnsure.length === 2;
     }).length;
 
-    const taskSubmitted = filteredApplicants.filter(app => !!(app?.task?.fileUrl)).length;
+    // Count actual task submissions
+    let task1Submitted = 0;
+    let task2Submitted = 0;
+    let submittedOnlyOneOfTwo = 0; // Students who should submit 2 but only submitted 1
+
+    filteredApplicants.forEach(app => {
+      const tasks = getTasksArray(app);
+      const entries = app?.pi?.entries;
+      const selectedOrUnsure = Array.isArray(entries) 
+        ? entries.filter(e => e.status === "selected" || e.status === "unsure")
+        : [];
+
+      // Count task 1 submissions
+      if (tasks.length >= 1 && tasks[0]?.url) {
+        task1Submitted++;
+      }
+
+      // Count task 2 submissions
+      if (tasks.length >= 2 && tasks[1]?.url) {
+        task2Submitted++;
+      }
+
+      // Count students who should submit 2 tasks but only submitted 1
+      if (selectedOrUnsure.length === 2 && tasks.length === 1 && tasks[0]?.url) {
+        submittedOnlyOneOfTwo++;
+      }
+    });
 
     const totalStudents = selected + unsure;
 
-    return { selected, unsure, taskSubmitted, totalStudents };
+    return { 
+      selected, 
+      unsure, 
+      task1Submitted, 
+      task2Submitted, 
+      totalStudents,
+      shouldHaveOneDomain,
+      shouldHaveTwoDomains,
+      submittedOnlyOneOfTwo
+    };
   }, [filteredApplicants]);
 
   const getDomainPiStatus = (app, domainName) => {
@@ -267,23 +309,46 @@ const TaskList = () => {
 
       <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm font-medium text-gray-600">Selected</p>
+          <p className="text-sm font-medium text-gray-600">Selected (PI Status)</p>
           <p className="text-2xl font-bold text-green-700">{stats.selected}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm font-medium text-gray-600">Unsure</p>
+          <p className="text-sm font-medium text-gray-600">Unsure (PI Status)</p>
           <p className="text-2xl font-bold text-yellow-600">{stats.unsure}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm font-medium text-gray-600">Total Students (Selected + Unsure)</p>
+          <p className="text-sm font-medium text-gray-600">Total Students</p>
           <p className="text-2xl font-bold text-indigo-700">{stats.totalStudents}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm font-medium text-gray-600">Task Submitted</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.taskSubmitted}</p>
+          <p className="text-sm font-medium text-gray-600">Task 1 Submitted</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.task1Submitted}</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-sm font-medium text-gray-600">Task 2 Submitted</p>
+          <p className="text-2xl font-bold text-purple-600">{stats.task2Submitted}</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-sm font-medium text-gray-600">Should Submit 1 Task</p>
+          <p className="text-2xl font-bold text-teal-600">{stats.shouldHaveOneDomain}</p>
+          <p className="text-xs text-gray-500 mt-1">Students with 1 selected/unsure domain</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-sm font-medium text-gray-600">Should Submit 2 Tasks</p>
+          <p className="text-2xl font-bold text-cyan-600">{stats.shouldHaveTwoDomains}</p>
+          <p className="text-xs text-gray-500 mt-1">Students with 2 selected/unsure domains</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <p className="text-sm font-medium text-gray-600">Submitted Only 1 of 2</p>
+          <p className="text-2xl font-bold text-orange-600">{stats.submittedOnlyOneOfTwo}</p>
+          <p className="text-xs text-gray-500 mt-1">Need to submit 2nd task</p>
         </div>
       </div>
 
