@@ -6,10 +6,10 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/api': {
-        target: 'https://ecellrecruits.shdevsolutions.com',
+      '/api/v1': {
+        target: 'http://ecellideatex.theprelofts.in:8080',
         changeOrigin: true,
-        secure: true,
+        secure: false,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.log('Proxy error:', err);

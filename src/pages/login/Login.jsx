@@ -3,22 +3,53 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import useAuthStore from "../../store/authStore";
+import { useIdeatexAuthStore } from "../../store/ideatexAuthStore";
 
 export default function LoginPage() {
+  const [activeTab, setActiveTab] = useState("recruitment"); // "recruitment" or "ideatex"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { login, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+  
+  // Recruitment auth store
+  const { 
+    login: recruitmentLogin, 
+    isLoading: recruitmentLoading, 
+    error: recruitmentError, 
+    isAuthenticated: recruitmentAuth, 
+    clearError: clearRecruitmentError 
+  } = useAuthStore();
+  
+  // Ideatex auth store
+  const { 
+    login: ideatexLogin, 
+    isLoading: ideatexLoading, 
+    error: ideatexError, 
+    isAuthenticated: ideatexAuth, 
+    clearError: clearIdeatexError 
+  } = useIdeatexAuthStore();
+  
   const navigate = useNavigate();
+
+  // Determine current values based on active tab
+  const isLoading = activeTab === "ideatex" ? ideatexLoading : recruitmentLoading;
+  const error = activeTab === "ideatex" ? ideatexError : recruitmentError;
+  const isAuthenticated = activeTab === "ideatex" ? ideatexAuth : recruitmentAuth;
+  const clearError = activeTab === "ideatex" ? clearIdeatexError : clearRecruitmentError;
 
   // Remove the initializeAuth call from here since it's already handled in App.jsx
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      // Navigate based on active tab
+      if (activeTab === "ideatex") {
+        navigate("/ideatex");
+      } else {
+        navigate("/");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, activeTab]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,10 +58,14 @@ export default function LoginPage() {
       return;
     }
     clearError();
-    const result = await login({
+    
+    // Use appropriate login function based on active tab
+    const loginFn = activeTab === "ideatex" ? ideatexLogin : recruitmentLogin;
+    const result = await loginFn({
       email: email.trim().toLowerCase(),
       password: password.trim(),
     });
+    
     if (!result.success) {
       console.log("Login failed:", result.error);
     }
@@ -67,8 +102,53 @@ export default function LoginPage() {
           />
         
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Recruitment Portal</h1>
-          <p className="text-gray-600 text-sm">Admin access to manage recruitment process</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome to {activeTab === "ideatex" ? "Ideatex" : "Recruitment"} Portal
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Admin access to manage {activeTab === "ideatex" ? "Ideatex event" : "recruitment process"}
+          </p>
+        </motion.div>
+
+        {/* Tab Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex mb-6 bg-gray-100 rounded-xl p-1"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("recruitment");
+              clearError();
+              setEmail("");
+              setPassword("");
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all duration-200 ${
+              activeTab === "recruitment"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Recruitment
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("ideatex");
+              clearError();
+              setEmail("");
+              setPassword("");
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all duration-200 ${
+              activeTab === "ideatex"
+                ? "bg-white text-purple-600 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Ideatex
+          </button>
         </motion.div>
 
         {/* Error Message */}
@@ -152,6 +232,8 @@ export default function LoginPage() {
             className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg ${
               isLoading 
                 ? "bg-gray-400 cursor-not-allowed text-gray-200"
+                : activeTab === "ideatex"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-purple-200 hover:shadow-xl"
                 : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-blue-200 hover:shadow-xl"
             }`}
           >

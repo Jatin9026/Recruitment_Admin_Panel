@@ -3,7 +3,9 @@ import React, { useEffect, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from "./components/Layout";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import IdeatexProtectedRoute from "./components/IdeatexProtectedRoute";
 import useAuthStore from "./store/authStore";
+import { useIdeatexAuthStore } from "./store/ideatexAuthStore";
 import { ROUTE_PERMISSIONS } from "./utils/rolePermissions";
 import { Toaster, toast } from "sonner";
 
@@ -32,6 +34,13 @@ import LoginPage from "./pages/login/Login";
 import BulkSlotAssignment from './pages/slots/BulkSlotAssignment';
 import SlotAttendance from './pages/attendance/SlotAttendance';
 
+// Ideatex page imports
+import IdeatexDashboard from "./pages/ideatex/Dashboard";
+import TeamList from "./pages/ideatex/TeamList";
+import CoordinatorList from "./pages/ideatex/CoordinatorList";
+import PanelAssignment from "./pages/ideatex/PanelAssignment";
+import IdeatexSettings from "./pages/ideatex/Settings";
+
 // ==================== PROTECTED ROUTE COMPONENT ====================
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -58,6 +67,9 @@ function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isInitialized = useAuthStore((state) => state.isInitialized);
+  
+  // Ideatex auth store
+  const initializeIdeatexAuth = useIdeatexAuthStore((state) => state.initializeAuth);
 
   // ==================== APP INITIALIZATION ====================
   useEffect(() => {
@@ -87,7 +99,9 @@ function App() {
       }
     };
     
+    // Initialize both auth stores
     initializeAuth();
+    initializeIdeatexAuth();
     
     // Cleanup function
     return () => {
@@ -96,7 +110,7 @@ function App() {
         delete window.dismissToast;
       }
     };
-  }, [initializeAuth]);
+  }, [initializeAuth, initializeIdeatexAuth]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
@@ -286,6 +300,23 @@ function App() {
                 </RoleProtectedRoute>
               } />
 
+            </Route>
+
+            {/* ==================== IDEATEX ROUTES ==================== */}
+            <Route
+              path="/ideatex"
+              element={
+                <IdeatexProtectedRoute>
+                  <Layout isIdeatex={true} />
+                </IdeatexProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/ideatex/dashboard" replace />} />
+              <Route path="dashboard" element={<IdeatexDashboard />} />
+              <Route path="teams" element={<TeamList />} />
+              <Route path="coordinators" element={<CoordinatorList />} />
+              <Route path="panel-assignment" element={<PanelAssignment />} />
+              <Route path="settings" element={<IdeatexSettings />} />
             </Route>
 
             {/* Catch-all Route */}
