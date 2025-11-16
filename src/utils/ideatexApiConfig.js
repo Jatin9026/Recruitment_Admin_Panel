@@ -2,7 +2,7 @@
 // const API_BASE_URL = 'https://ideatex-backend.onrender.com/api/v1';
 // Ideatex API Configuration
 // Use proxy in development, full URL in production
-const API_BASE_URL = import.meta.env.VITE_IDEATEX_API_BASE_URL || 'http://ecellideatex.theprelofts.in:8080/api/v1';
+const API_BASE_URL = "https://ideatex.shdevsolutions.com/api/v1";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
