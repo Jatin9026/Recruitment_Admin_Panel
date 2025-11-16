@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
+import { useIdeatexAuthStore } from '../store/ideatexAuthStore';
 import Sidebar from './Sidebar'; 
 
-function Layout() {
-  const { user, logout } = useAuthStore();
+function Layout({ isIdeatex = false }) {
+  const { user: recruitmentUser, logout: recruitmentLogout } = useAuthStore();
+  const { user: ideatexUser, logout: ideatexLogout } = useIdeatexAuthStore();
+  
+  const user = isIdeatex ? ideatexUser : recruitmentUser;
+  const logout = isIdeatex ? ideatexLogout : recruitmentLogout;
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
@@ -41,22 +47,26 @@ function Layout() {
   const handleLogout = () => {
     logout();
     console.log("User logged out from Layout");
+    navigate('/login');
   };
 
   const getMainContentMargin = () => {
     if (isMobile) return 0;
-    return sidebarCollapsed ? 80 : 280;
+    return sidebarCollapsed ? 80 : 256;
   };
 
   const handleProfileClick = () => {
-    navigate('/admin/profile');
-    handleMenuClick();
+    if (isIdeatex) {
+      navigate('/ideatex/settings');
+    } else {
+      navigate('/admin/profile');
+    }
   };
 
   return (
     <div className="min-h-screen font-caldina bg-gray-50">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar isIdeatex={isIdeatex} />
 
       {/* Main Content */}
       <motion.main
@@ -75,22 +85,37 @@ function Layout() {
             <div className="flex justify-between items-center py-2">
               <div className="flex items-center space-x-4">
                 {/* Logo/Brand */}
-                <img 
-                  // src="https://firebasestorage.googleapis.com/v0/b/endevaour-2023.appspot.com/o/webassets%2Fwhite%20logo%20br.png?alt=media&token=50662b36-d955-4f24-985c-bd73a9101e01" 
-                  src='/logo.png'
-                  alt="Recruitment Logo"
-                  className="w-10 h-10 object-contain rounded-lg shadow-md"
-                />
-
-                
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    Recruitment Portal
-                  </h1>
-                  <p className="text-sm text-gray-500">
-                    Admin Management System
-                  </p>
-                </div>
+                {isIdeatex ? (
+                  <>
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                      I
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-semibold text-gray-900">
+                        Ideatex Event
+                      </h1>
+                      <p className="text-sm text-gray-500">
+                        Admin Management System
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src='/logo.png'
+                      alt="Recruitment Logo"
+                      className="w-10 h-10 object-contain rounded-lg shadow-md"
+                    />
+                    <div>
+                      <h1 className="text-xl font-semibold text-gray-900">
+                        Recruitment Portal
+                      </h1>
+                      <p className="text-sm text-gray-500">
+                        Admin Management System
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
               
               {/* User Info & Actions */}
@@ -107,21 +132,21 @@ function Layout() {
 
                     {/* User Profile */}
                     <div 
-                      className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg cursor-pointer px-3 py-2"
+                      className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg cursor-pointer px-3 py-2 hover:bg-gray-100 transition-colors"
                       onClick={handleProfileClick}
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">
-                          {user.name?.charAt(0).toUpperCase() || 'U'}
+                          {user?.name?.charAt(0).toUpperCase() || 'U'}
                         </span>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {user.name}
+                          {user?.name || 'Admin'}
                         </div>
                         <div className="text-xs text-gray-500 flex items-center gap-1">
                           <span className="w-2 h-2 bg-green-400 rounded-full" />
-                          {user.role}
+                          {user?.role || 'Admin'}
                         </div>
                       </div>
                     </div>

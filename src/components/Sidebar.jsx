@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
+import { useIdeatexAuthStore } from "../store/ideatexAuthStore";
 import { ROLES, ROUTE_PERMISSIONS } from "../utils/rolePermissions";
 import {
   LayoutDashboard,
@@ -20,9 +21,11 @@ import {
   UserPlus,
   UserCheck,
   Activity,
+  Settings,
+  Briefcase,
 } from "lucide-react";
 
-const menuItems = [
+const recruitmentMenuItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
   { path: "/slots/bulk-assign", label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
   { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.attendance },
@@ -48,10 +51,23 @@ const menuItems = [
   { path: "/admin/logs", label: "Admin Logs", icon: Activity, roles: ROUTE_PERMISSIONS.adminLogs },
 ];
 
-export default function Sidebar() {
+const ideatexMenuItems = [
+  { path: "/ideatex/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/ideatex/teams", label: "Team Management", icon: Users },
+  { path: "/ideatex/coordinators", label: "Coordinators", icon: UserCheck },
+  { path: "/ideatex/panel-assignment", label: "Panel Assignment", icon: Briefcase },
+  { path: "/ideatex/settings", label: "Settings", icon: Settings },
+];
+
+export default function Sidebar({ isIdeatex = false }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user: recruitmentUser } = useAuthStore();
+  const { user: ideatexUser } = useIdeatexAuthStore();
+  
+  const user = isIdeatex ? ideatexUser : recruitmentUser;
+  const menuItems = isIdeatex ? ideatexMenuItems : recruitmentMenuItems;
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true';
@@ -103,11 +119,19 @@ export default function Sidebar() {
   };
 
   const handleProfileClick = () => {
-    navigate('/admin/profile');
+    if (isIdeatex) {
+      navigate('/ideatex/settings');
+    } else {
+      navigate('/admin/profile');
+    }
     handleMenuClick();
   };
 
   const userHasAccess = (roles) => {
+    // For Ideatex, all menu items are accessible
+    if (isIdeatex) return true;
+    
+    // For Recruitment, check role permissions
     if (!user?.role) return false;
     // If roles is not provided, treat as public (allow). If it's malformed, deny and warn.
     if (roles == null) return true;
@@ -254,17 +278,29 @@ export default function Sidebar() {
           {!isCollapsed ? (
             <>
               <div className="flex items-center space-x-3 flex-1">
-              <img 
-                // src="https://firebasestorage.googleapis.com/v0/b/endevaour-2023.appspot.com/o/webassets%2Fwhite%20logo%20br.png?alt=media&token=50662b36-d955-4f24-985c-bd73a9101e01" 
-                src="/logo.png"
-                alt="Recruitment Logo"
-                className="w-10 h-10 object-contain rounded-lg shadow-md"
-              />
-
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Recruitment</h2>
-                  <p className="text-xs text-gray-500">Admin Portal</p>
-                </div>
+                {isIdeatex ? (
+                  <>
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                      I
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Ideatex</h2>
+                      <p className="text-xs text-gray-500">Event Portal</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src="/logo.png"
+                      alt="Recruitment Logo"
+                      className="w-10 h-10 object-contain rounded-lg shadow-md"
+                    />
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Recruitment</h2>
+                      <p className="text-xs text-gray-500">Admin Portal</p>
+                    </div>
+                  </>
+                )}
               </div>
               <button
                 onClick={toggleCollapse}
@@ -276,17 +312,10 @@ export default function Sidebar() {
             </>
           ) : (
             <div className="flex flex-col items-center space-y-2 w-full">
-              {/* <div 
-                className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200"
-                title="Recruitment Admin Portal - Click to expand"
-                onClick={() => setIsCollapsed(false)}
-              >
-                <span className="text-white font-bold text-xl">R</span>
-              </div> */}
               <button
                 onClick={toggleCollapse}
                 className="flex items-center justify-center p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                title="Collapse sidebar"
+                title="Expand sidebar"
               >
                 <Menu className="w-5 h-5 text-gray-600" />
               </button>

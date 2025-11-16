@@ -27,3 +27,4 @@ dist-ssr
 # Miscellaneous
 *.txt
 *.md
+.env
