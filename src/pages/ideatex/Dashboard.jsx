@@ -9,6 +9,9 @@ import {
   Activity,
   CheckCircle,
   Clock,
+  DollarSign,
+  CreditCard,
+  IndianRupeeIcon,
 } from 'lucide-react';
 import { ideatexApiClient } from '../../utils/ideatexApiConfig';
 
@@ -18,6 +21,8 @@ const Dashboard = () => {
     totalCoordinators: 0,
     assignedPanels: 0,
     pendingAssignments: 0,
+    completedPayments: 0,
+    totalMoneyCollected: 0,
   });
   const [recentTeams, setRecentTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +48,23 @@ const Dashboard = () => {
       
       const assignedPanels = teams.filter((t) => t.panel).length;
       const pendingAssignments = teams.length - assignedPanels;
+      
+      // Calculate payment statistics
+      const completedPayments = teams.filter((t) => t.paymentStatus === 'completed').length;
+      const totalMoneyCollected = teams.reduce((sum, team) => {
+        if (team.paymentStatus === 'completed' && team.paymentDetails?.amount) {
+          return sum + team.paymentDetails.amount;
+        }
+        return sum;
+      }, 0);
 
       setStats({
         totalTeams: teams.length,
         totalCoordinators: coordinators.length,
         assignedPanels,
         pendingAssignments,
+        completedPayments,
+        totalMoneyCollected,
       });
 
       // Get recent teams (last 5) and process to add leader info
@@ -73,6 +89,25 @@ const Dashboard = () => {
 
   const statCards = [
     {
+      title: 'Money Collected',
+      value: `₹${(stats.totalMoneyCollected / 100).toLocaleString('en-IN')}`,
+      icon: IndianRupeeIcon,
+      color: 'emerald',
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+      borderColor: 'border-emerald-100',
+      isMonetary: true,
+    },
+    {
+      title: 'Completed Payments',
+      value: stats.completedPayments,
+      icon: CreditCard,
+      color: 'green',
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      borderColor: 'border-green-100',
+    },
+    {
       title: 'Total Teams',
       value: stats.totalTeams,
       icon: Users,
@@ -94,10 +129,10 @@ const Dashboard = () => {
       title: 'Assigned Panels',
       value: stats.assignedPanels,
       icon: CheckCircle,
-      color: 'green',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      borderColor: 'border-green-100',
+      color: 'indigo',
+      bgColor: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+      borderColor: 'border-indigo-100',
     },
     {
       title: 'Pending Assignments',
@@ -153,7 +188,7 @@ const Dashboard = () => {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.title}
@@ -167,7 +202,7 @@ const Dashboard = () => {
                 <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
               </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">
+            <h3 className={`text-3xl font-bold text-gray-900 mb-1 ${stat.isMonetary ? 'text-2xl' : ''}`}>
               {stat.value}
             </h3>
             <p className="text-sm text-gray-600 font-medium">{stat.title}</p>
@@ -205,7 +240,7 @@ const Dashboard = () => {
                       Slot
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Payment Status
                     </th>
                   </tr>
                 </thead>
@@ -255,10 +290,10 @@ const Dashboard = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {team.panel && team.slot ? (
+                        {team.paymentStatus === 'completed' ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Ready
+                            Verified
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">

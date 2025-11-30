@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Users, Eye, X, User, Mail, Phone, BookOpen, Building2, IdCard, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Users, Eye, X, User, Mail, Phone, BookOpen, Building2, IdCard, Calendar, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 import { ideatexApiClient } from '../../utils/ideatexApiConfig';
 
 const TeamList = () => {
@@ -340,40 +340,151 @@ const TeamList = () => {
                       {selectedTeam.members.length}
                     </p>
                   </div>
-                  {selectedTeam.paymentTransactionId && (
-                    <div className="bg-gray-50 p-4 rounded-lg col-span-2">
-                      <p className="text-xs text-gray-500 mb-1">Payment Transaction ID</p>
-                      <p className="text-sm font-semibold text-gray-900 font-mono">
-                        {selectedTeam.paymentTransactionId}
-                      </p>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Payment Status</p>
+                    <div className="flex items-center gap-1">
+                      {selectedTeam.paymentStatus === 'completed' ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-700">Completed</span>
+                        </>
+                      ) : selectedTeam.paymentStatus === 'pending' ? (
+                        <>
+                          <XCircle className="w-4 h-4 text-yellow-600" />
+                          <span className="text-sm font-semibold text-yellow-700">Pending</span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-700">
+                          {selectedTeam.paymentStatus || 'Unknown'}
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* QR Code and Payment Screenshot */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedTeam.qrUrl && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-2">Team QR Code</p>
-                      <img 
-                        src={selectedTeam.qrUrl} 
-                        alt="Team QR Code" 
-                        className="w-48 h-48 object-contain border border-gray-200 rounded mx-auto"
-                      />
+                {/* Payment Information */}
+                {selectedTeam.paymentDetails && (
+                  <div className="mt-4 bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border-2 border-green-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm text-gray-700 font-bold flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-green-600" />
+                        Razorpay Payment Details
+                      </p>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-600 text-white">
+                        {selectedTeam.paymentDetails.status?.toUpperCase() || 'COMPLETED'}
+                      </span>
                     </div>
-                  )}
-                  {selectedTeam.paymentScreenshot && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-2">Payment Screenshot</p>
-                      <img 
-                        src={selectedTeam.paymentScreenshot} 
-                        alt="Payment Screenshot" 
-                        className="w-48 h-48 object-contain border border-gray-200 rounded mx-auto cursor-pointer hover:scale-105 transition-transform"
-                        onClick={() => window.open(selectedTeam.paymentScreenshot, '_blank')}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                        <p className="text-xs text-gray-500 mb-1 font-medium">Payment ID</p>
+                        <p className="text-sm font-mono text-gray-900 break-all font-semibold">
+                          {selectedTeam.paymentDetails.razorpayPaymentId}
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                        <p className="text-xs text-gray-500 mb-1 font-medium">Order ID</p>
+                        <p className="text-sm font-mono text-gray-900 break-all font-semibold">
+                          {selectedTeam.paymentDetails.razorpayOrderId}
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                        <p className="text-xs text-gray-500 mb-1 font-medium">Amount Paid</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ₹{(selectedTeam.paymentDetails.amount / 100).toFixed(2)}
+                          <span className="text-xs text-gray-500 ml-1">{selectedTeam.paymentDetails.currency}</span>
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                        <p className="text-xs text-gray-500 mb-1 font-medium">Payment Date</p>
+                        <p className="text-sm text-gray-900 font-semibold">
+                          {new Date(selectedTeam.paymentDetails.paidAt).toLocaleString('en-IN', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short'
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {/* Legacy Payment Information (Backward Compatibility) */}
+                {!selectedTeam.paymentDetails && (selectedTeam.razorpayPaymentId || selectedTeam.razorpayOrderId || selectedTeam.paymentTransactionId) && (
+                  <div className="mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="text-xs text-gray-600 mb-3 font-semibold flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-yellow-600" />
+                      Legacy Payment Information
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {selectedTeam.razorpayPaymentId && (
+                        <div className="bg-white p-3 rounded border border-yellow-100">
+                          <p className="text-xs text-gray-500 mb-1">Razorpay Payment ID</p>
+                          <p className="text-sm font-mono text-gray-900 break-all">
+                            {selectedTeam.razorpayPaymentId}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTeam.razorpayOrderId && (
+                        <div className="bg-white p-3 rounded border border-yellow-100">
+                          <p className="text-xs text-gray-500 mb-1">Razorpay Order ID</p>
+                          <p className="text-sm font-mono text-gray-900 break-all">
+                            {selectedTeam.razorpayOrderId}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTeam.paymentTransactionId && (
+                        <div className="bg-white p-3 rounded border border-yellow-100">
+                          <p className="text-xs text-gray-500 mb-1">Transaction ID</p>
+                          <p className="text-sm font-mono text-gray-900 break-all">
+                            {selectedTeam.paymentTransactionId}
+                          </p>
+                        </div>
+                      )}
+                      {selectedTeam.isPendingPayment !== undefined && (
+                        <div className="bg-white p-3 rounded border border-yellow-100">
+                          <p className="text-xs text-gray-500 mb-1">Payment Pending</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {selectedTeam.isPendingPayment ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* QR Code and Payment Screenshot (Backward Compatibility) */}
+                {(selectedTeam.qrUrl || selectedTeam.paymentScreenshot) && (
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500 mb-3 font-semibold flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-gray-600" />
+                      Legacy Payment Records (Backward Compatibility)
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedTeam.qrUrl && (
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2">Team QR Code</p>
+                          <img 
+                            src={selectedTeam.qrUrl} 
+                            alt="Team QR Code" 
+                            className="w-48 h-48 object-contain border border-gray-300 rounded mx-auto cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => window.open(selectedTeam.qrUrl, '_blank')}
+                          />
+                        </div>
+                      )}
+                      {selectedTeam.paymentScreenshot && (
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2">Payment Screenshot</p>
+                          <img 
+                            src={selectedTeam.paymentScreenshot} 
+                            alt="Payment Screenshot" 
+                            className="w-48 h-48 object-contain border border-gray-300 rounded mx-auto cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => window.open(selectedTeam.paymentScreenshot, '_blank')}
+                          />
+                          <p className="text-xs text-gray-400 mt-2 text-center">Click to view full size</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Leader Information */}
                 {selectedTeam.leaderId && (
