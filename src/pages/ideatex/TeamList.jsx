@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Users, Eye, X, User, Mail, Phone, BookOpen, Building2, IdCard, Calendar, CheckCircle, XCircle, CreditCard } from 'lucide-react';
+import { Search, Users, Eye, X, User, Mail, Phone, BookOpen, Building2, IdCard, Calendar, CheckCircle, XCircle, CreditCard, Clock } from 'lucide-react';
 import { ideatexApiClient } from '../../utils/ideatexApiConfig';
 
 const TeamList = () => {
@@ -74,6 +74,76 @@ const TeamList = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTeam(null);
+  };
+
+  // Helper function to format slot time with date and time
+  const formatSlotDateTime = (slot) => {
+    if (!slot) return { display: 'Not Assigned', date: null, time: null };
+    
+    // If slot is an ISO date string or timestamp
+    const date = new Date(slot);
+    if (!isNaN(date.getTime())) {
+      return {
+        display: date.toLocaleString('en-IN', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        date: date.toLocaleDateString('en-IN', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        time: date.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      };
+    }
+    
+    // If slot is a number (slot number), map to time ranges
+    const slotNumber = parseInt(slot);
+    if (!isNaN(slotNumber)) {
+      const slotTimes = {
+        1: { time: '9:00 AM - 9:30 AM', period: 'Morning' },
+        2: { time: '9:30 AM - 10:00 AM', period: 'Morning' },
+        3: { time: '10:00 AM - 10:30 AM', period: 'Morning' },
+        4: { time: '10:30 AM - 11:00 AM', period: 'Morning' },
+        5: { time: '11:00 AM - 11:30 AM', period: 'Morning' },
+        6: { time: '11:30 AM - 12:00 PM', period: 'Morning' },
+        7: { time: '12:00 PM - 12:30 PM', period: 'Afternoon' },
+        8: { time: '12:30 PM - 1:00 PM', period: 'Afternoon' },
+        9: { time: '1:00 PM - 1:30 PM', period: 'Afternoon' },
+        10: { time: '1:30 PM - 2:00 PM', period: 'Afternoon' },
+        11: { time: '2:00 PM - 2:30 PM', period: 'Afternoon' },
+        12: { time: '2:30 PM - 3:00 PM', period: 'Afternoon' },
+        13: { time: '3:00 PM - 3:30 PM', period: 'Afternoon' },
+        14: { time: '3:30 PM - 4:00 PM', period: 'Evening' },
+        15: { time: '4:00 PM - 4:30 PM', period: 'Evening' },
+        16: { time: '4:30 PM - 5:00 PM', period: 'Evening' },
+      };
+      const slotInfo = slotTimes[slotNumber];
+      return {
+        display: slotInfo ? `Slot ${slotNumber} - ${slotInfo.time}` : `Slot ${slotNumber}`,
+        date: null,
+        time: slotInfo?.time || null,
+        slotNumber: slotNumber,
+        period: slotInfo?.period || null
+      };
+    }
+    
+    // If slot is already a formatted string
+    if (typeof slot === 'string') {
+      return { display: slot, date: null, time: null };
+    }
+    
+    return { display: 'Not Assigned', date: null, time: null };
   };
 
   if (loading) {
@@ -306,11 +376,40 @@ const TeamList = () => {
                       {selectedTeam.panel || 'Not Assigned'}
                     </p>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Slot</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {selectedTeam.slot || 'Not Assigned'}
+                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-100">
+                    <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Slot
                     </p>
+                    {(() => {
+                      const slotInfo = formatSlotDateTime(selectedTeam.slot);
+                      return (
+                        <div>
+                          {slotInfo.time ? (
+                            <>
+                              <p className="text-sm font-semibold text-indigo-700">
+                                {slotInfo.time}
+                              </p>
+                              {slotInfo.slotNumber && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Slot #{slotInfo.slotNumber} • {slotInfo.period}
+                                </p>
+                              )}
+                              {slotInfo.date && (
+                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {slotInfo.date}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm font-semibold text-gray-900">
+                              {slotInfo.display}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-500 mb-1">Verification Status</p>
