@@ -11,6 +11,8 @@ const TaskList = () => {
   const [filter, setFilter] = useState("pending");
   const [filterDomain, setFilterDomain] = useState("All");
   const [filterPI, setFilterPI] = useState("All"); // All | pi_selected_unsure
+  const [filterYear, setFilterYear] = useState("All"); // All | 1 | 2 | 3 | 4
+  const [filterGender, setFilterGender] = useState("All"); // All | Male | Female | Other
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -65,6 +67,10 @@ const TaskList = () => {
   };
 
   const uniqueDomains = ["All", ...new Set(applicants.flatMap(a => a.domains || []))];
+
+  const uniqueYears = ["All", ...new Set(applicants.map(a => a.year).filter(Boolean).sort())];
+
+  const uniqueGenders = ["All", ...new Set(applicants.map(a => a.gender).filter(Boolean))];
 
   const getTasksArray = (app) => {
     if (!app) return [];
@@ -142,6 +148,7 @@ const TaskList = () => {
   };
 
   const filteredApplicants = applicants.filter(app => {
+    // Search filter
     if (searchTerm && typeof searchTerm === 'string') {
       const q = searchTerm.toLowerCase().trim();
       const nameMatch = app.name && app.name.toLowerCase().includes(q);
@@ -149,17 +156,29 @@ const TaskList = () => {
       const libMatch = app.lib_id && String(app.lib_id).toLowerCase().includes(q);
       if (!(nameMatch || emailMatch || libMatch)) return false;
     }
+
+    // View filter (pending/submitted)
     if (filter === "pending" && !hasPISelectedOrUnsure(app)) return false;
     if (filter === "submitted" && !hasSubmittedTask(app)) return false;
 
-    if (filterDomain !== "All" && !(app.domains && app.domains.includes(filterDomain))) return false;
+    // Year filter
+    if (filterYear !== "All" && app.year !== parseInt(filterYear)) return false;
 
-    if (filterDomain !== "All" && filterPI === "pi_selected_unsure") {
+    // Gender filter
+    if (filterGender !== "All" && app.gender !== filterGender) return false;
+
+    // Domain filter - check PI entries for selected/unsure status in that domain
+    if (filterDomain !== "All") {
+      // Check if applicant has the domain
+      if (!(app.domains && app.domains.includes(filterDomain))) return false;
+      
+      // Check PI entries - student must be selected/unsure for this domain
       const entry = getPIEntryForDomain(app, filterDomain);
       if (!entry) return false;
       if (!(entry.status === "selected" || entry.status === "unsure")) return false;
     }
 
+    // Additional PI filter (when domain is "All")
     if (filterDomain === "All" && filterPI === "pi_selected_unsure") {
       const entries = app?.pi?.entries;
       if (!Array.isArray(entries) || !entries.some(e => e && (e.status === "selected" || e.status === "unsure"))) return false;
@@ -295,6 +314,20 @@ const TaskList = () => {
           <label className="text-sm font-medium">Domain</label>
           <select value={filterDomain} onChange={(e) => setFilterDomain(e.target.value)} className="px-3 py-2 border rounded bg-white">
             {uniqueDomains.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Year</label>
+          <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="px-3 py-2 border rounded bg-white">
+            {uniqueYears.map(y => <option key={y} value={y}>{y === "All" ? "All Years" : `Year ${y}`}</option>)}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Gender</label>
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="px-3 py-2 border rounded bg-white">
+            {uniqueGenders.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
         </div>
 
