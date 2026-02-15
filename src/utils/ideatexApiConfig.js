@@ -53,6 +53,10 @@ export const IDEATEX_API_ENDPOINTS = {
   UPDATE_SETTING: '/settings/{key}',
   DELETE_SETTING: '/settings/{key}',
   RELOAD_SETTINGS: '/settings/reload',
+  
+  // Certificate
+  GET_CERTIFICATE_STATUS: '/admin/certificate/status',
+  TOGGLE_CERTIFICATE: '/admin/certificate/toggle',
 };
 
 // Ideatex API client class
@@ -236,6 +240,18 @@ export class IdeatexApiClient {
   async reloadSettings() {
     return this.request(IDEATEX_API_ENDPOINTS.RELOAD_SETTINGS, {
       method: 'POST'
+    });
+  }
+
+  // Certificate operations
+  async getCertificateStatus() {
+    return this.request(IDEATEX_API_ENDPOINTS.GET_CERTIFICATE_STATUS);
+  }
+
+  async toggleCertificateStatus(published) {
+    return this.request(IDEATEX_API_ENDPOINTS.TOGGLE_CERTIFICATE, {
+      method: 'POST',
+      body: JSON.stringify({ published })
     });
   }
 }

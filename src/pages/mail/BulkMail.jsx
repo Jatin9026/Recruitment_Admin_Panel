@@ -166,11 +166,24 @@ const BulkMail = () => {
     // Filter by search query (name, email, or lib_id) - using debounced search
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase().trim();
-      filtered = filtered.filter(applicant => 
-        (applicant.name && applicant.name.toLowerCase().includes(query)) ||
-        (applicant.email && applicant.email.toLowerCase().includes(query)) ||
-        (applicant.lib_id && applicant.lib_id.toString().toLowerCase().includes(query))
-      );
+      
+      // Check if query contains commas (multiple emails)
+      if (query.includes(',')) {
+        // Split by comma and trim each email
+        const emails = query.split(',').map(e => e.trim().toLowerCase()).filter(e => e.length > 0);
+        
+        // Filter applicants whose email matches any of the provided emails (exact match)
+        filtered = filtered.filter(applicant => 
+          emails.some(email => applicant.email && applicant.email.toLowerCase() === email)
+        );
+      } else {
+        // Single search term - search by name, email, or lib_id
+        filtered = filtered.filter(applicant => 
+          (applicant.name && applicant.name.toLowerCase().includes(query)) ||
+          (applicant.email && applicant.email.toLowerCase().includes(query)) ||
+          (applicant.lib_id && applicant.lib_id.toString().toLowerCase().includes(query))
+        );
+      }
     }
     
     // Filter by domain (if PI filter is set to pi_selected_unsure and a domain chosen,
@@ -1311,7 +1324,7 @@ const BulkMail = () => {
               )}
               <motion.input
                 type="text"
-                placeholder="Search by name, email, or library ID..."
+                placeholder="Search by name, email, library ID, or multiple emails (comma-separated)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 whileFocus={{ scale: 1.01 }}
