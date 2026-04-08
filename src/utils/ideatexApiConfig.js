@@ -2,8 +2,8 @@
 // const API_BASE_URL = 'https://ideatex-backend.onrender.com/api/v1';
 // Ideatex API Configuration
 // Use proxy in development, full URL in production
-const API_BASE_URL = "https://ideatex.shdevsolutions.com/api/v1";
-// const API_BASE_URL = "http://localhost:3000/api/v1";
+// const API_BASE_URL = "https://ideatex.shdevsolutions.com/api/v1";
+const API_BASE_URL = "http://localhost:3000/api/v1";
 
 
 // Helper function to get auth headers
@@ -59,6 +59,20 @@ export const IDEATEX_API_ENDPOINTS = {
   // Certificate
   GET_CERTIFICATE_STATUS: '/admin/certificate/status',
   TOGGLE_CERTIFICATE: '/admin/certificate/toggle',
+
+  // Panels
+  CREATE_PANEL: '/admin/panels',
+  GET_ALL_PANELS: '/admin/panels',
+  GET_PANEL_BY_ID: '/admin/panels/{id}',
+  UPDATE_PANEL: '/admin/panels/{id}',
+  DELETE_PANEL: '/admin/panels/{id}',
+
+  // Time Slots
+  CREATE_TIME_SLOT: '/admin/time-slots',
+  GET_ALL_TIME_SLOTS: '/admin/time-slots',
+  GET_TIME_SLOT_BY_ID: '/admin/time-slots/{id}',
+  UPDATE_TIME_SLOT: '/admin/time-slots/{id}',
+  DELETE_TIME_SLOT: '/admin/time-slots/{id}',
 };
 
 // Ideatex API client class
@@ -254,6 +268,66 @@ export class IdeatexApiClient {
     return this.request(IDEATEX_API_ENDPOINTS.TOGGLE_CERTIFICATE, {
       method: 'POST',
       body: JSON.stringify({ published })
+    });
+  }
+
+  // Panel operations
+  async createPanel(panelData) {
+    return this.request(IDEATEX_API_ENDPOINTS.CREATE_PANEL, {
+      method: 'POST',
+      body: JSON.stringify(panelData)
+    });
+  }
+
+  async getAllPanels(isActive) {
+    const query = isActive !== undefined ? `?isActive=${isActive}` : '';
+    return this.request(`${IDEATEX_API_ENDPOINTS.GET_ALL_PANELS}${query}`);
+  }
+
+  async getPanelById(id) {
+    return this.request(IDEATEX_API_ENDPOINTS.GET_PANEL_BY_ID.replace('{id}', id));
+  }
+
+  async updatePanel(id, panelData) {
+    return this.request(IDEATEX_API_ENDPOINTS.UPDATE_PANEL.replace('{id}', id), {
+      method: 'PUT',
+      body: JSON.stringify(panelData)
+    });
+  }
+
+  async deletePanel(id) {
+    return this.request(IDEATEX_API_ENDPOINTS.DELETE_PANEL.replace('{id}', id), {
+      method: 'DELETE'
+    });
+  }
+
+  // Time Slot operations
+  async createTimeSlot(slotData) {
+    return this.request(IDEATEX_API_ENDPOINTS.CREATE_TIME_SLOT, {
+      method: 'POST',
+      body: JSON.stringify(slotData)
+    });
+  }
+
+  async getAllTimeSlots(date) {
+    const query = date ? `?date=${date}` : '';
+    return this.request(`${IDEATEX_API_ENDPOINTS.GET_ALL_TIME_SLOTS}${query}`);
+  }
+
+  async getTimeSlotById(id) {
+    return this.request(IDEATEX_API_ENDPOINTS.GET_TIME_SLOT_BY_ID.replace('{id}', id));
+  }
+
+  async updateTimeSlot(id, slotData) {
+    return this.request(IDEATEX_API_ENDPOINTS.UPDATE_TIME_SLOT.replace('{id}', id), {
+      method: 'PUT',
+      body: JSON.stringify(slotData)
+    });
+  }
+
+  async deleteTimeSlot(id) {
+    return this.request(IDEATEX_API_ENDPOINTS.DELETE_TIME_SLOT.replace('{id}', id), {
+      method: 'DELETE'
     });
   }
 }

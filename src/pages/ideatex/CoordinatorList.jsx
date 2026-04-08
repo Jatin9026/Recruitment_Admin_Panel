@@ -16,6 +16,7 @@ const CoordinatorList = () => {
     panel: '',
   });
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [panels, setPanels] = useState([]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -25,6 +26,7 @@ const CoordinatorList = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     fetchCoordinators();
+    fetchPanels();
   }, []);
 
   useEffect(() => {
@@ -40,6 +42,15 @@ const CoordinatorList = () => {
       setFilteredCoordinators(coordinators);
     }
   }, [searchQuery, coordinators]);
+
+  const fetchPanels = async () => {
+    try {
+      const response = await ideatexApiClient.getAllPanels();
+      setPanels(response.data?.panels || []);
+    } catch (error) {
+      console.error('Error fetching panels:', error);
+    }
+  };
 
   const fetchCoordinators = async () => {
     try {
@@ -340,10 +351,11 @@ const CoordinatorList = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="">Select Panel (Optional)</option>
-                    <option value="Panel-1">Panel-1</option>
-                    <option value="Panel-2">Panel-2</option>
-                    <option value="Panel-3">Panel-3</option>
-                    <option value="Panel-4">Panel-4</option>
+                    {panels.map(p => (
+                      <option key={p._id} value={p.name}>
+                        {p.name}{p.venue ? ` (${p.venue})` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

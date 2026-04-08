@@ -11,6 +11,8 @@ const TeamList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [verifiedFilter, setVerifiedFilter] = useState('all'); // 'all' | 'verified' | 'unverified'
+  const [assignedFilter, setAssignedFilter] = useState('all'); // 'all' | 'panel' | 'slot' | 'none'
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -18,17 +20,33 @@ const TeamList = () => {
   }, []);
 
   useEffect(() => {
+    let filtered = [...teams];
+
     if (searchQuery.trim()) {
-      const filtered = teams.filter(
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
         (team) =>
-          team.teamName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          team.teamCode?.toLowerCase().includes(searchQuery.toLowerCase())
+          team.teamName?.toLowerCase().includes(q) ||
+          team.teamCode?.toLowerCase().includes(q)
       );
-      setFilteredTeams(filtered);
-    } else {
-      setFilteredTeams(teams);
     }
-  }, [searchQuery, teams]);
+
+    if (verifiedFilter === 'verified') {
+      filtered = filtered.filter(t => t.isVerified);
+    } else if (verifiedFilter === 'unverified') {
+      filtered = filtered.filter(t => !t.isVerified);
+    }
+
+    if (assignedFilter === 'panel') {
+      filtered = filtered.filter(t => t.panel);
+    } else if (assignedFilter === 'slot') {
+      filtered = filtered.filter(t => t.slot);
+    } else if (assignedFilter === 'none') {
+      filtered = filtered.filter(t => !t.panel && !t.slot);
+    }
+
+    setFilteredTeams(filtered);
+  }, [searchQuery, verifiedFilter, assignedFilter, teams]);
 
   const fetchTeams = async () => {
     try {
@@ -198,8 +216,8 @@ const TeamList = () => {
         </div>
       </motion.div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
+      {/* Search + Filters */}
+      <div className="mb-6 space-y-3">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -209,6 +227,56 @@ const TeamList = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 mr-1">Status:</span>
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'verified', label: 'Verified' },
+            { value: 'unverified', label: 'Unverified' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setVerifiedFilter(value)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                verifiedFilter === value
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+
+          <span className="text-xs font-medium text-gray-500 ml-3 mr-1">Assignment:</span>
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'panel', label: 'Panel Assigned' },
+            { value: 'slot', label: 'Slot Assigned' },
+            { value: 'none', label: 'None Assigned' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setAssignedFilter(value)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                assignedFilter === value
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+
+          {(verifiedFilter !== 'all' || assignedFilter !== 'all' || searchQuery) && (
+            <button
+              onClick={() => { setVerifiedFilter('all'); setAssignedFilter('all'); setSearchQuery(''); }}
+              className="ml-auto px-3 py-1 rounded-full text-xs font-medium text-red-600 border border-red-300 hover:bg-red-50 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -222,6 +290,11 @@ const TeamList = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
             All Teams ({filteredTeams.length})
+            {(searchQuery || verifiedFilter !== 'all' || assignedFilter !== 'all') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Filtered
+              </span>
+            )}
           </h2>
         </div>
         <div className="p-6">
