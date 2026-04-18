@@ -3,14 +3,22 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import { useIdeatexAuthStore } from '../store/ideatexAuthStore';
+import { useEndeavourAuthStore } from '../store/endeavourAuthStore';
 import Sidebar from './Sidebar'; 
+import { RECRUITMENT_PATHS } from '../modules/recruitment/paths';
+import { IDEATEX_PATHS } from '../modules/ideatex/paths';
+import { ENDEAVOUR_PATHS } from '../modules/endeavour/paths';
 
-function Layout({ isIdeatex = false }) {
+function Layout({ moduleType = 'recruitment' }) {
   const { user: recruitmentUser, logout: recruitmentLogout } = useAuthStore();
   const { user: ideatexUser, logout: ideatexLogout } = useIdeatexAuthStore();
+  const { user: endeavourUser, logout: endeavourLogout } = useEndeavourAuthStore();
   
-  const user = isIdeatex ? ideatexUser : recruitmentUser;
-  const logout = isIdeatex ? ideatexLogout : recruitmentLogout;
+  const isIdeatex = moduleType === 'ideatex';
+  const isEndeavour = moduleType === 'endeavour';
+
+  const user = isIdeatex ? ideatexUser : isEndeavour ? endeavourUser : recruitmentUser;
+  const logout = isIdeatex ? ideatexLogout : isEndeavour ? endeavourLogout : recruitmentLogout;
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -47,7 +55,17 @@ function Layout({ isIdeatex = false }) {
   const handleLogout = () => {
     logout();
     console.log("User logged out from Layout");
-    navigate('/login');
+    if (isEndeavour) {
+      navigate(ENDEAVOUR_PATHS.login);
+      return;
+    }
+
+    if (isIdeatex) {
+      navigate(IDEATEX_PATHS.login);
+      return;
+    }
+
+    navigate(RECRUITMENT_PATHS.login);
   };
 
   const getMainContentMargin = () => {
@@ -56,17 +74,19 @@ function Layout({ isIdeatex = false }) {
   };
 
   const handleProfileClick = () => {
-    if (isIdeatex) {
-      navigate('/ideatex/settings');
+    if (isEndeavour) {
+      navigate(ENDEAVOUR_PATHS.dashboard);
+    } else if (isIdeatex) {
+      navigate(IDEATEX_PATHS.settings);
     } else {
-      navigate('/admin/profile');
+      navigate(RECRUITMENT_PATHS.adminProfile);
     }
   };
 
   return (
     <div className="min-h-screen font-caldina bg-gray-50">
       {/* Sidebar */}
-      <Sidebar isIdeatex={isIdeatex} />
+      <Sidebar moduleType={moduleType} />
 
       {/* Main Content */}
       <motion.main
@@ -93,6 +113,20 @@ function Layout({ isIdeatex = false }) {
                     <div>
                       <h1 className="text-xl font-semibold text-gray-900">
                         Ideatex Event
+                      </h1>
+                      <p className="text-sm text-gray-500">
+                        Admin Management System
+                      </p>
+                    </div>
+                  </>
+                ) : isEndeavour ? (
+                  <>
+                    <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                      E
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-semibold text-gray-900">
+                        Endeavour Portal
                       </h1>
                       <p className="text-sm text-gray-500">
                         Admin Management System

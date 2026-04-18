@@ -28,3 +28,7 @@ dist-ssr
 *.txt
 *.md
 .env
+run_fix.py
+sonar-project.properties
+.gitignore
+.scannerwork/.sonar_lock

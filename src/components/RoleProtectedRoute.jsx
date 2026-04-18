@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import { RECRUITMENT_PATHS } from '../modules/recruitment/paths';
 
 const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, isAuthenticated, isInitialized } = useAuthStore();
@@ -19,7 +20,7 @@ const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={RECRUITMENT_PATHS.login} replace />;
   }
 
   // If no role restrictions, allow access (backwards compatibility)

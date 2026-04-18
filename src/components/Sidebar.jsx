@@ -3,7 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import { useIdeatexAuthStore } from "../store/ideatexAuthStore";
-import { ROLES, ROUTE_PERMISSIONS } from "../utils/rolePermissions";
+import { useEndeavourAuthStore } from "../store/endeavourAuthStore";
+import { ROUTE_PERMISSIONS } from "../utils/rolePermissions";
+import { RECRUITMENT_PATHS } from "../modules/recruitment/paths";
+import { IDEATEX_PATHS } from "../modules/ideatex/paths";
+import { ENDEAVOUR_PATHS } from "../modules/endeavour/paths";
 import {
   LayoutDashboard,
   Users,
@@ -17,7 +21,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  ChevronRight,
   UserPlus,
   UserCheck,
   Activity,
@@ -26,47 +29,58 @@ import {
 } from "lucide-react";
 
 const recruitmentMenuItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
-  { path: "/slots/bulk-assign", label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
-  { path: "/slots/attendance", label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.attendance },
-  { path: "/groups/list", label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
-  { path: "/screening", label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },
+  { path: RECRUITMENT_PATHS.dashboard, label: "Dashboard", icon: LayoutDashboard, roles: ROUTE_PERMISSIONS.dashboard },
+  { path: RECRUITMENT_PATHS.slotsBulkAssign, label: "Bulk Slot Assignment", icon: Clock, roles: ROUTE_PERMISSIONS.slots },
+  { path: RECRUITMENT_PATHS.slotsAttendance, label: "Slot Attendance", icon: UserCheck, roles: ROUTE_PERMISSIONS.attendance },
+  { path: RECRUITMENT_PATHS.groupsList, label: "Group Discussion", icon: UsersRound, roles: ROUTE_PERMISSIONS.groups },
+  { path: RECRUITMENT_PATHS.screening, label: "Screening", icon: FileText, roles: ROUTE_PERMISSIONS.screening },
   {
     label: "Interviews",
     icon: CheckCircle,
     roles: ROUTE_PERMISSIONS.interviews,
     children: [
-      { path: "/interview/tech", label: "Technical" },
-      { path: "/interview/graphics", label: "Graphics" },
-      { path: "/interview/pr", label: "Public Relations" },
-      { path: "/interview/cr", label: "Corporate Relations" },
-      { path: "/interview/events", label: "Events" },
+      { path: RECRUITMENT_PATHS.interviewTech, label: "Technical" },
+      { path: RECRUITMENT_PATHS.interviewGraphics, label: "Graphics" },
+      { path: RECRUITMENT_PATHS.interviewPr, label: "Public Relations" },
+      { path: RECRUITMENT_PATHS.interviewCr, label: "Corporate Relations" },
+      { path: RECRUITMENT_PATHS.interviewEvents, label: "Events" },
     ],
   },
-  { path: "/tasks/list", label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
-  { path: "/mail/bulk", label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
-  { path: "/mail/templates", label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
-  { path: "/admin/create", label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
-  { path: "/admin/list", label: "Admin List", icon: Users, roles: ROUTE_PERMISSIONS.adminLogs },
-  { path: "/admin/logs", label: "Admin Logs", icon: Activity, roles: ROUTE_PERMISSIONS.adminLogs },
+  { path: RECRUITMENT_PATHS.tasksList, label: "Tasks", icon: ClipboardList, roles: ROUTE_PERMISSIONS.tasks },
+  { path: RECRUITMENT_PATHS.mailBulk, label: "Bulk Mail", icon: Inbox, roles: ROUTE_PERMISSIONS.bulkMail },
+  { path: RECRUITMENT_PATHS.mailTemplates, label: "Mail Templates", icon: Mail, roles: ROUTE_PERMISSIONS.mailTemplates },
+  { path: RECRUITMENT_PATHS.adminCreate, label: "Create Admin", icon: UserPlus, roles: ROUTE_PERMISSIONS.createAdmin },
+  { path: RECRUITMENT_PATHS.adminList, label: "Admin List", icon: Users, roles: ROUTE_PERMISSIONS.adminLogs },
+  { path: RECRUITMENT_PATHS.adminLogs, label: "Admin Logs", icon: Activity, roles: ROUTE_PERMISSIONS.adminLogs },
 ];
 
 const ideatexMenuItems = [
-  { path: "/ideatex/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/ideatex/teams", label: "Team Management", icon: Users },
-  { path: "/ideatex/coordinators", label: "Coordinators", icon: UserCheck },
-  { path: "/ideatex/panel-assignment", label: "Panel Assignment", icon: Briefcase },
-  { path: "/ideatex/settings", label: "Settings", icon: Settings },
+  { path: IDEATEX_PATHS.dashboard, label: "Dashboard", icon: LayoutDashboard },
+  { path: IDEATEX_PATHS.teams, label: "Team Management", icon: Users },
+  { path: IDEATEX_PATHS.coordinators, label: "Coordinators", icon: UserCheck },
+  { path: IDEATEX_PATHS.panelAssignment, label: "Panel Assignment", icon: Briefcase },
+  { path: IDEATEX_PATHS.settings, label: "Settings", icon: Settings },
 ];
 
-export default function Sidebar({ isIdeatex = false }) {
+const endeavourMenuItems = [
+  { path: ENDEAVOUR_PATHS.dashboard, label: "Dashboard", icon: LayoutDashboard },
+  { path: ENDEAVOUR_PATHS.users, label: "Users", icon: Users },
+  { path: ENDEAVOUR_PATHS.participants, label: "Participants", icon: UserCheck },
+  { path: ENDEAVOUR_PATHS.teams, label: "Teams", icon: Briefcase },
+];
+
+export default function Sidebar({ moduleType = "recruitment" }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user: recruitmentUser } = useAuthStore();
   const { user: ideatexUser } = useIdeatexAuthStore();
+  const { user: endeavourUser } = useEndeavourAuthStore();
+
+  const isIdeatex = moduleType === "ideatex";
+  const isEndeavour = moduleType === "endeavour";
   
-  const user = isIdeatex ? ideatexUser : recruitmentUser;
-  const menuItems = isIdeatex ? ideatexMenuItems : recruitmentMenuItems;
+  const user = isIdeatex ? ideatexUser : isEndeavour ? endeavourUser : recruitmentUser;
+  const menuItems = isIdeatex ? ideatexMenuItems : isEndeavour ? endeavourMenuItems : recruitmentMenuItems;
   
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -120,16 +134,18 @@ export default function Sidebar({ isIdeatex = false }) {
 
   const handleProfileClick = () => {
     if (isIdeatex) {
-      navigate('/ideatex/settings');
+      navigate(IDEATEX_PATHS.settings);
+    } else if (isEndeavour) {
+      navigate(ENDEAVOUR_PATHS.dashboard);
     } else {
-      navigate('/admin/profile');
+      navigate(RECRUITMENT_PATHS.adminProfile);
     }
     handleMenuClick();
   };
 
   const userHasAccess = (roles) => {
-    // For Ideatex, all menu items are accessible
-    if (isIdeatex) return true;
+    // For Ideatex and Endeavour, all module menu items are accessible once authenticated
+    if (isIdeatex || isEndeavour) return true;
     
     // For Recruitment, check role permissions
     if (!user?.role) return false;
@@ -286,6 +302,16 @@ export default function Sidebar({ isIdeatex = false }) {
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">Ideatex</h2>
                       <p className="text-xs text-gray-500">Event Portal</p>
+                    </div>
+                  </>
+                ) : isEndeavour ? (
+                  <>
+                    <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                      E
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Endeavour</h2>
+                      <p className="text-xs text-gray-500">Admin Portal</p>
                     </div>
                   </>
                 ) : (

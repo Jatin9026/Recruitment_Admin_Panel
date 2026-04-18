@@ -1,0 +1,48 @@
+export const RECRUITMENT_ROOT = "/recruitment";
+export const RECRUITMENT_LOGIN = `${RECRUITMENT_ROOT}/login`;
+
+export const RECRUITMENT_CHILD_PATHS = {
+  dashboard: "dashboard",
+  slotsBulkAssign: "slots/bulk-assign",
+  slotsAttendance: "slots/attendance",
+  groupsList: "groups/list",
+  screening: "screening",
+  screeningEvaluate: "screening/evaluate/:id",
+  interviewDomain: "interview/domain",
+  interviewEvents: "interview/events",
+  interviewGraphics: "interview/graphics",
+  interviewCr: "interview/cr",
+  interviewPr: "interview/pr",
+  interviewTech: "interview/tech",
+  mailTemplates: "mail/templates",
+  mailBulk: "mail/bulk",
+  tasksList: "tasks/list",
+  adminProfile: "admin/profile",
+  adminCreate: "admin/create",
+  adminList: "admin/list",
+  adminLogs: "admin/logs",
+};
+
+export const RECRUITMENT_PATHS = {
+  root: RECRUITMENT_ROOT,
+  login: RECRUITMENT_LOGIN,
+  dashboard: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.dashboard}`,
+  slotsBulkAssign: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.slotsBulkAssign}`,
+  slotsAttendance: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.slotsAttendance}`,
+  groupsList: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.groupsList}`,
+  screening: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.screening}`,
+  screeningEvaluate: (id = ":id") => `${RECRUITMENT_ROOT}/screening/evaluate/${id}`,
+  interviewDomain: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewDomain}`,
+  interviewEvents: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewEvents}`,
+  interviewGraphics: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewGraphics}`,
+  interviewCr: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewCr}`,
+  interviewPr: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewPr}`,
+  interviewTech: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.interviewTech}`,
+  mailTemplates: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.mailTemplates}`,
+  mailBulk: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.mailBulk}`,
+  tasksList: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.tasksList}`,
+  adminProfile: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.adminProfile}`,
+  adminCreate: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.adminCreate}`,
+  adminList: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.adminList}`,
+  adminLogs: `${RECRUITMENT_ROOT}/${RECRUITMENT_CHILD_PATHS.adminLogs}`,
+};

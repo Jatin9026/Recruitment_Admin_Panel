@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useIdeatexAuthStore } from '../store/ideatexAuthStore';
+import { IDEATEX_PATHS } from '../modules/ideatex/paths';
 
 const IdeatexProtectedRoute = ({ children }) => {
   const { isAuthenticated, isInitialized } = useIdeatexAuthStore();
@@ -19,7 +20,7 @@ const IdeatexProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     // Redirect to login with the current location as state
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={IDEATEX_PATHS.login} state={{ from: location }} replace />;
   }
 
   return children;

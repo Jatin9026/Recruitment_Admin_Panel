@@ -114,7 +114,7 @@ if (typeof window !== 'undefined') {
     logout();
     
     // Redirect to login
-    window.location.href = '/login';
+    window.location.href = '/ideatex/login';
   };
 }
 
