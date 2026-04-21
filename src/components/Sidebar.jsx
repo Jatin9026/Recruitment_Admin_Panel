@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import useAuthStore from "../store/authStore";
 import { useIdeatexAuthStore } from "../store/ideatexAuthStore";
 import { useEndeavourAuthStore } from "../store/endeavourAuthStore";
 import { ROUTE_PERMISSIONS } from "../utils/rolePermissions";
+import { ENDEAVOUR_ALLOWED_ROLES, hasAnyEndeavourRoleAccess } from "../utils/endeavourRoleAccess";
 import { RECRUITMENT_PATHS } from "../modules/recruitment/paths";
 import { IDEATEX_PATHS } from "../modules/ideatex/paths";
 import { ENDEAVOUR_PATHS } from "../modules/endeavour/paths";
@@ -63,10 +63,54 @@ const ideatexMenuItems = [
 ];
 
 const endeavourMenuItems = [
-  { path: ENDEAVOUR_PATHS.dashboard, label: "Dashboard", icon: LayoutDashboard },
-  { path: ENDEAVOUR_PATHS.users, label: "Users", icon: Users },
-  { path: ENDEAVOUR_PATHS.participants, label: "Participants", icon: UserCheck },
-  { path: ENDEAVOUR_PATHS.teams, label: "Teams", icon: Briefcase },
+  {
+    path: ENDEAVOUR_PATHS.dashboard,
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    roles: ENDEAVOUR_ALLOWED_ROLES.anyAdminSide,
+  },
+  {
+    path: ENDEAVOUR_PATHS.ecellMembers,
+    label: "Ecell Members",
+    icon: UsersRound,
+    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.roles,
+    label: "Roles and Access",
+    icon: Activity,
+    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.participants,
+    label: "Participants",
+    icon: UserCheck,
+    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.teams,
+    label: "Teams",
+    icon: Briefcase,
+    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.settings,
+    label: "Settings",
+    icon: Settings,
+    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.events,
+    label: "Event Operations",
+    icon: Briefcase,
+    roles: ENDEAVOUR_ALLOWED_ROLES.eventManagerPlus,
+  },
+  {
+    path: ENDEAVOUR_PATHS.auditTools,
+    label: "Audit Tools",
+    icon: FileText,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
+  },
 ];
 
 export default function Sidebar({ moduleType = "recruitment" }) {
@@ -144,8 +188,15 @@ export default function Sidebar({ moduleType = "recruitment" }) {
   };
 
   const userHasAccess = (roles) => {
-    // For Ideatex and Endeavour, all module menu items are accessible once authenticated
-    if (isIdeatex || isEndeavour) return true;
+    // For Ideatex, all module menu items are accessible once authenticated
+    if (isIdeatex) return true;
+
+    if (isEndeavour) {
+      if (!user?.role) return false;
+      if (roles == null) return true;
+      if (!Array.isArray(roles)) return false;
+      return hasAnyEndeavourRoleAccess(user.role, roles);
+    }
     
     // For Recruitment, check role permissions
     if (!user?.role) return false;
@@ -153,7 +204,7 @@ export default function Sidebar({ moduleType = "recruitment" }) {
     if (roles == null) return true;
     if (!Array.isArray(roles)) {
       // helpful debug info during development
-      if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
         console.warn('Sidebar: expected roles to be an array but got', roles);
       }
       return false;
@@ -279,13 +330,11 @@ export default function Sidebar({ moduleType = "recruitment" }) {
       )}
 
       {/* Sidebar */}
-      <motion.div
-        initial={false}
-        animate={{ width: isCollapsed ? 80 : 280 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+      <div
         className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg z-30 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } transition-transform duration-300`}
+        style={{ width: isCollapsed ? 80 : 280 }}
       >
         {/* Header */}
         <div className={`flex items-center justify-center p-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
@@ -401,7 +450,7 @@ export default function Sidebar({ moduleType = "recruitment" }) {
             )}
           </div>
         )}
-      </motion.div>
+      </div>
     </>
   );
 }

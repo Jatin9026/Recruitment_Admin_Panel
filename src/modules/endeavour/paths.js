@@ -3,16 +3,34 @@ export const ENDEAVOUR_LOGIN = `${ENDEAVOUR_ROOT}/login`;
 
 export const ENDEAVOUR_CHILD_PATHS = {
   dashboard: "dashboard",
-  users: "users",
+  ecellMembers: "ecell-members",
+  roles: "roles",
   participants: "participants",
   teams: "teams",
+  settings: "settings",
+  auditTools: "audit-tools",
+  events: "events",
+  contentDomains: "content/domains",
+  contentPastEvents: "content/past-events",
+  contentSpeakers: "content/speakers",
+  contentSponsors: "content/sponsors",
+  contentMedia: "content/media",
 };
 
 export const ENDEAVOUR_PATHS = {
   root: ENDEAVOUR_ROOT,
   login: ENDEAVOUR_LOGIN,
   dashboard: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.dashboard}`,
-  users: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.users}`,
+  ecellMembers: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.ecellMembers}`,
+  roles: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.roles}`,
   participants: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.participants}`,
   teams: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.teams}`,
+  settings: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.settings}`,
+  auditTools: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.auditTools}`,
+  events: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.events}`,
+  contentDomains: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentDomains}`,
+  contentPastEvents: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentPastEvents}`,
+  contentSpeakers: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentSpeakers}`,
+  contentSponsors: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentSponsors}`,
+  contentMedia: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentMedia}`,
 };
