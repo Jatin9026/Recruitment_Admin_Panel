@@ -6,7 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-.env
 node_modules
 dist
 dist-ssr
@@ -27,8 +26,8 @@ dist-ssr
 # Miscellaneous
 *.txt
 *.md
-.env
 run_fix.py
 sonar-project.properties
 .gitignore
 .scannerwork/.sonar_lock
+config.bat
