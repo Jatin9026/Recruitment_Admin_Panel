@@ -13,71 +13,436 @@ import { endeavourApiClient } from "../../../utils/endeavourApiConfig";
 
 const includeOptions = ["members", "events", "rounds", "panels", "slots", "attendance", "orders"];
 
+const formatDateTime = (value) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString();
+};
+
+const getTeamStats = (data) => {
+  const rounds = Array.isArray(data?.rounds) ? data.rounds : [];
+  const panels = rounds.reduce((count, entry) => count + (Array.isArray(entry?.panels) ? entry.panels.length : 0), 0);
+
+  return {
+    members: Array.isArray(data?.members) ? data.members.length : 0,
+    rounds: rounds.length,
+    panels,
+    attendance: Array.isArray(data?.attendance) ? data.attendance.length : 0,
+    orders: Array.isArray(data?.orders) ? data.orders.length : 0,
+  };
+};
+
+const getPrimaryLabel = (entry, fallbacks = []) => {
+  for (const key of fallbacks) {
+    const value = entry?.[key];
+    if (value) {
+      return value;
+    }
+  }
+  return "-";
+};
+
+function DetailSection({ title, subtitle, children, muted = false }) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200/80 bg-slate-50 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-600">{title}</h3>
+            {subtitle ? <p className="mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+          </div>
+        </div>
+      </div>
+      <div className={muted ? "bg-slate-50 px-5 py-5" : "px-5 py-5"}>{children}</div>
+    </section>
+  );
+}
+
+function StatPill({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm ring-1 ring-black/5">
+      <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full w-2/3 rounded-full bg-slate-900/80" />
+      </div>
+    </div>
+  );
+}
+
+function InfoField({ label, value, dark = false, mono = false }) {
+  const wrapperClass = dark
+    ? "border-white/10 bg-white/8 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset]"
+    : "border-slate-200 bg-slate-50";
+  const labelClass = dark ? "text-slate-300" : "text-slate-500";
+  const valueClass = dark ? "text-white" : "text-slate-900";
+
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${wrapperClass}`}>
+      <p className={`text-[11px] font-medium uppercase tracking-[0.22em] ${labelClass}`}>{label}</p>
+      <p className={`mt-2 text-sm font-medium ${valueClass} ${mono ? "font-mono" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
 function TeamDetailModal({ isOpen, data, loading, error, onClose }) {
   if (!isOpen) {
     return null;
   }
 
+  const team = data?.team || {};
+  const event = data?.event || null;
+  const members = Array.isArray(data?.members) ? data.members : [];
+  const rounds = Array.isArray(data?.rounds) ? data.rounds : [];
+  const attendance = Array.isArray(data?.attendance) ? data.attendance : [];
+  const orders = Array.isArray(data?.orders) ? data.orders : [];
+  const slots = Array.isArray(data?.slots) ? data.slots : [];
+  const stats = getTeamStats(data);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="w-full max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-white px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Team Full Profile</h2>
-            <p className="text-xs text-slate-500">GET /api/v1/admin/teams/{'{team_id}'}/full</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Team Full Profile</p>
+            <h2 className="mt-1 text-2xl font-semibold text-slate-900">{team?.name || "Team profile"}</h2>
+            <p className="mt-1 text-sm text-slate-600">GET /api/v1/admin/teams/{'{team_id}'}/full</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{team?.invite_code || "Invite code unavailable"}</span>
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{event?.name || team?.event_id || "Event unavailable"}</span>
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{members.length} members</span>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100"
+            aria-label="Close details"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="max-h-[calc(90vh-72px)] overflow-y-auto p-5">
+        <div className="max-h-[60vh] overflow-y-auto p-6">
           {loading ? (
             <div className="py-16 text-center">
               <RefreshCw className="mx-auto h-6 w-6 animate-spin text-emerald-600" />
               <p className="mt-2 text-sm text-slate-600">Loading team details...</p>
             </div>
           ) : error ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
               <p className="font-medium">Failed to load team details</p>
               <p className="mt-1 text-sm">{error}</p>
             </div>
           ) : (
-            <div className="space-y-5">
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">Team</h3>
-                <div className="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-                  <p><span className="font-medium text-slate-900">Name:</span> {data?.team?.name || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Invite Code:</span> {data?.team?.invite_code || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Event ID:</span> {data?.team?.event_id || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Leader ID:</span> {data?.team?.leader_id || "-"}</p>
+            <div className="grid gap-4 lg:grid-cols-[300px,1fr]">
+              <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200 text-lg font-semibold text-slate-700">
+                    {(team?.name || team?.invite_code || "T").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{team?.name || "-"}</p>
+                    <p className="text-xs text-slate-500">{team?.invite_code || "No invite code"}</p>
+                  </div>
                 </div>
-              </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">Summary</h3>
-                <div className="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2 md:grid-cols-4">
-                  <p><span className="font-medium text-slate-900">Members:</span> {data?.members?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Rounds:</span> {data?.rounds?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Attendance:</span> {data?.attendance?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Orders:</span> {data?.orders?.length || 0}</p>
+                <div className="mt-4 space-y-2">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Leader ID</p>
+                    <p className="mt-1 break-all text-sm text-slate-800">{team?.leader_id || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Event ID</p>
+                    <p className="mt-1 break-all text-sm text-slate-800">{team?.event_id || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Created</p>
+                    <p className="mt-1 text-sm text-slate-800">{formatDateTime(team?.created_at)}</p>
+                  </div>
                 </div>
-              </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">Raw Response (for complete nested data)</h3>
-                <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </section>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Members</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{stats.members}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Rounds</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{stats.rounds}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Panels</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{stats.panels}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Orders</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{stats.orders}</p>
+                  </div>
+                </div>
+              </aside>
+
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <UsersRound className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Team Core</h3>
+                  </div>
+                  <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Name</dt>
+                      <dd className="mt-1 text-sm text-slate-900">{team?.name || "-"}</dd>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Invite Code</dt>
+                      <dd className="mt-1 break-all text-sm text-slate-900">{team?.invite_code || "-"}</dd>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Event ID</dt>
+                      <dd className="mt-1 break-all text-sm text-slate-900">{team?.event_id || "-"}</dd>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Leader ID</dt>
+                      <dd className="mt-1 break-all text-sm text-slate-900">{team?.leader_id || "-"}</dd>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Created</dt>
+                      <dd className="mt-1 text-sm text-slate-900">{formatDateTime(team?.created_at)}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Event Snapshot</h3>
+                  </div>
+                  {event ? (
+                    <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Name</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.name || "-"}</dd>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Category</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.category || "-"}</dd>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Venue</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.venue || "-"}</dd>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Platform</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.platform || "-"}</dd>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Mode</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.mode || "-"}</dd>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</dt>
+                        <dd className="mt-1 text-sm text-slate-900">{event?.status || "-"}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-slate-500">Event data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <UsersRound className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Members</h3>
+                  </div>
+                  {members.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {members.map((member, index) => (
+                        <div key={member?.user_id || `${member?.email || "member"}-${index}`} className={`rounded-2xl border p-4 ${member?.is_leader ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-slate-900">{member?.name || "-"}</p>
+                              <p className="text-xs text-slate-500">{member?.email || member?.user_id || "-"}</p>
+                            </div>
+                            {member?.is_leader ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Leader</span> : null}
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <InfoField label="College" value={member?.college || "-"} />
+                            <InfoField label="Branch" value={member?.branch || "-"} />
+                            <InfoField label="Year" value={member?.year || "-"} />
+                            <InfoField label="Joined" value={formatDateTime(member?.joined_at)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Member data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Rounds</h3>
+                  </div>
+                  {rounds.length ? (
+                    <div className="space-y-3">
+                      {rounds.map((entry, index) => {
+                        const round = entry?.round || entry || {};
+                        const panelList = Array.isArray(entry?.panels) ? entry.panels : [];
+
+                        return (
+                          <div key={round?.id || `${round?.name || "round"}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <p className="font-semibold text-slate-900">{round?.name || `Round ${index + 1}`}</p>
+                                <p className="text-xs text-slate-500">{round?.id || "-"}</p>
+                              </div>
+                              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">{round?.mode || "-"}</span>
+                            </div>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                              <InfoField label="Sequence" value={round?.sequence || "-"} />
+                              <InfoField label="Status" value={round?.status || "-"} />
+                              <InfoField label="Starts" value={formatDateTime(round?.starts_at)} />
+                              <InfoField label="Ends" value={formatDateTime(round?.ends_at)} />
+                            </div>
+                            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Round points</p>
+                              <p className="mt-1 text-sm text-slate-800">{Array.isArray(round?.round_points) && round.round_points.length ? round.round_points.join(" · ") : "-"}</p>
+                            </div>
+                            <div className="mt-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Panels</p>
+                              {panelList.length ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {panelList.map((panel, panelIndex) => (
+                                    <span key={panel?.id || `${panel?.name || "panel"}-${panelIndex}`} className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700">
+                                      {panel?.name || panel?.id || `Panel ${panelIndex + 1}`}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-sm text-slate-500">No panels were returned for this round.</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Round data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Attendance</h3>
+                  </div>
+                  {attendance.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {attendance.map((record, index) => {
+                        const label = getPrimaryLabel(record, ["name", "user_name", "user", "team_name", "id"]);
+                        return (
+                          <div key={record?.id || `${label}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="font-semibold text-slate-900">{label}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                              <InfoField label="Status" value={record?.status || record?.attendance_status || record?.present || "-"} />
+                              <InfoField label="Round" value={record?.round_id || record?.round || "-"} mono />
+                              <InfoField label="User ID" value={record?.user_id || "-"} mono />
+                              <InfoField label="Marked" value={formatDateTime(record?.created_at || record?.marked_at || record?.updated_at)} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Attendance data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Orders</h3>
+                  </div>
+                  {orders.length ? (
+                    <div className="grid gap-3 md:grid-cols-1">
+                      {orders.map((order, index) => (
+                        <div key={order?.id || `${order?.razorpay_order_id || "order"}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="font-semibold text-slate-900">{order?.requested_team_name || team?.name || `Order ${index + 1}`}</p>
+                              <p className="text-xs text-slate-500">{order?.razorpay_order_id || order?.id || "-"}</p>
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order?.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                              {order?.status || "-"}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <InfoField label="Amount" value={typeof order?.amount === "number" ? `${order.amount} ${order?.currency || "INR"}` : "-"} />
+                            <InfoField label="Payment ID" value={order?.razorpay_payment_id || order?.provider_payment_id || "-"} mono />
+                            <InfoField label="Created" value={formatDateTime(order?.created_at)} />
+                            <InfoField label="Paid at" value={formatDateTime(order?.paid_at)} />
+                          </div>
+                          <p className="mt-3 text-xs text-slate-500">Verified via {order?.verified_via || "-"}{order?.verified_at ? ` on ${formatDateTime(order.verified_at)}` : ""}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Order data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Slots</h3>
+                  </div>
+                  {slots.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {slots.map((slot, index) => (
+                        <div key={slot?.id || `${slot?.name || "slot"}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="font-semibold text-slate-900">{slot?.name || `Slot ${index + 1}`}</p>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <InfoField label="ID" value={slot?.id || "-"} mono />
+                            <InfoField label="Round ID" value={slot?.round_id || "-"} mono />
+                            <InfoField label="Created" value={formatDateTime(slot?.created_at)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Slot data was not returned for the current include selection.</p>
+                  )}
+                </section>
+              </div>
             </div>
           )}
         </div>
-      </div>
+
+        <div className="border-t border-slate-200 bg-white/90 px-6 py-4">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

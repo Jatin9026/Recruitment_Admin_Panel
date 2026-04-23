@@ -22,29 +22,69 @@ const includeOptions = [
   "orders",
 ];
 
+const formatDateTime = (value) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString();
+};
+
+function InfoField({ label, value, mono = false }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className={`mt-1 text-sm text-slate-900 ${mono ? "break-all font-mono" : ""}`}>{value || "-"}</p>
+    </div>
+  );
+}
+
 function ParticipantDetailModal({ isOpen, data, loading, error, onClose }) {
   if (!isOpen) {
     return null;
   }
 
+  const user = data?.user || {};
+  const teams = Array.isArray(data?.teams) ? data.teams : [];
+  const events = Array.isArray(data?.events) ? data.events : [];
+  const topLevelRounds = Array.isArray(data?.rounds) ? data.rounds : [];
+  const eventRounds = events.flatMap((eventEntry) => (Array.isArray(eventEntry?.rounds) ? eventEntry.rounds : []));
+  const rounds = [...topLevelRounds, ...eventRounds];
+  const attendance = Array.isArray(data?.attendance) ? data.attendance : [];
+  const orders = Array.isArray(data?.orders) ? data.orders : [];
+  const members = Array.isArray(data?.members) ? data.members : [];
+  const slots = Array.isArray(data?.slots) ? data.slots : [];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-gradient-to-br from-slate-100 via-slate-50 to-white px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Participant Full Profile</h2>
-            <p className="text-xs text-slate-500">GET /api/v1/admin/participants/{'{user_id}'}/full</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Participant Full Profile</p>
+            <h2 className="mt-1 text-2xl font-semibold text-slate-900">{user?.name || "Participant profile"}</h2>
+            <p className="mt-1 text-sm text-slate-600">GET /api/v1/admin/participants/{'{user_id}'}/full</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{user?.email || "No email"}</span>
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{teams.length} teams</span>
+              <span className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">{events.length} events</span>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-100"
+            aria-label="Close details"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="max-h-[calc(90vh-72px)] overflow-y-auto p-5">
+        <div className="max-h-[60vh] overflow-y-auto p-6">
           {loading ? (
             <div className="py-16 text-center">
               <RefreshCw className="mx-auto h-6 w-6 animate-spin text-emerald-600" />
@@ -56,37 +96,234 @@ function ParticipantDetailModal({ isOpen, data, loading, error, onClose }) {
               <p className="mt-1 text-sm">{error}</p>
             </div>
           ) : (
-            <div className="space-y-5">
-              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">User</h3>
-                <div className="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-                  <p><span className="font-medium text-slate-900">Name:</span> {data?.user?.name || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Email:</span> {data?.user?.email || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Phone:</span> {data?.user?.phone || "-"}</p>
-                  <p><span className="font-medium text-slate-900">College:</span> {data?.user?.college || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Branch:</span> {data?.user?.branch || "-"}</p>
-                  <p><span className="font-medium text-slate-900">Year:</span> {data?.user?.year || "-"}</p>
+            <div className="grid gap-4 lg:grid-cols-[300px,1fr]">
+              <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200 text-lg font-semibold text-slate-700">
+                    {(user?.name || user?.email || "P").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{user?.name || "-"}</p>
+                    <p className="text-xs text-slate-500">{user?.email || "No email"}</p>
+                  </div>
                 </div>
-              </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">Summary</h3>
-                <div className="mt-3 grid gap-3 text-sm text-slate-700 sm:grid-cols-2 md:grid-cols-4">
-                  <p><span className="font-medium text-slate-900">Teams:</span> {data?.teams?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Events:</span> {data?.events?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Attendance:</span> {data?.attendance?.length || 0}</p>
-                  <p><span className="font-medium text-slate-900">Orders:</span> {data?.orders?.length || 0}</p>
+                <div className="mt-4 space-y-2">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Phone</p>
+                    <p className="mt-1 text-sm text-slate-800">{user?.phone || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">College</p>
+                    <p className="mt-1 text-sm text-slate-800">{user?.college || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Branch</p>
+                    <p className="mt-1 text-sm text-slate-800">{user?.branch || "-"}</p>
+                  </div>
                 </div>
-              </section>
 
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-600">Raw Response (for complete nested data)</h3>
-                <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </section>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Teams</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{teams.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Events</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{events.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Attendance</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{attendance.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Orders</p>
+                    <p className="mt-1 text-xl font-semibold text-slate-900">{orders.length}</p>
+                  </div>
+                </div>
+              </aside>
+
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <UserRound className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">User</h3>
+                  </div>
+                  <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <InfoField label="Name" value={user?.name || "-"} />
+                    <InfoField label="Email" value={user?.email || "-"} />
+                    <InfoField label="Phone" value={user?.phone || "-"} />
+                    <InfoField label="College" value={user?.college || "-"} />
+                    <InfoField label="Branch" value={user?.branch || "-"} />
+                    <InfoField label="Year" value={user?.year || "-"} />
+                  </dl>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Teams</h3>
+                  </div>
+                  {teams.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {teams.map((teamEntry, index) => {
+                        const teamRecord = teamEntry?.team || teamEntry || {};
+                        const teamMembers = Array.isArray(teamEntry?.members) ? teamEntry.members : [];
+
+                        return (
+                        <div key={teamRecord?.id || `${teamRecord?.name || "team"}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="font-medium text-slate-900">{teamRecord?.name || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{teamRecord?.event_id || teamRecord?.id || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Members: {teamMembers.length}</p>
+                        </div>
+                      );})}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Team data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Events</h3>
+                  </div>
+                  {events.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {events.map((eventEntry, index) => {
+                        const eventRecord = eventEntry?.event || eventEntry || {};
+                        const ticket = eventEntry?.ticket || {};
+                        const currentRound = eventEntry?.current_round || {};
+
+                        return (
+                        <div key={eventRecord?.id || `${eventRecord?.name || "event"}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="font-medium text-slate-900">{eventRecord?.name || eventRecord?.id || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{eventRecord?.category || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Registration: {eventEntry?.registration_status || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Progression: {eventEntry?.progression_status || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Ticket: {ticket?.id || "-"}</p>
+                          <p className="mt-1 text-xs text-slate-500">Current Round: {currentRound?.name || "-"}</p>
+                        </div>
+                      );})}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Event data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Rounds</h3>
+                  </div>
+                  {rounds.length ? (
+                    <div className="space-y-3">
+                      {rounds.map((entry, index) => {
+                        const round = entry?.round || entry || {};
+                        const panelList = Array.isArray(entry?.panels) ? entry.panels : [];
+                        return (
+                          <div key={round?.id || `${round?.name || "round"}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-slate-900">{round?.name || `Round ${index + 1}`}</p>
+                              <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-700">{round?.mode || "-"}</span>
+                            </div>
+                            <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                              <InfoField label="Sequence" value={round?.sequence || "-"} />
+                              <InfoField label="Status" value={round?.status || "-"} />
+                              <InfoField label="Starts" value={formatDateTime(round?.starts_at)} />
+                              <InfoField label="Ends" value={formatDateTime(round?.ends_at)} />
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">Panels: {panelList.length}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Round data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Attendance</h3>
+                  </div>
+                  {attendance.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {attendance.map((record, index) => (
+                        <div key={record?.id || `${record?.round_id || "attendance"}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <InfoField label="Status" value={record?.status || record?.attendance_status || record?.present || "-"} />
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <InfoField label="Round" value={record?.round_id || record?.round || "-"} mono />
+                            <InfoField label="Marked" value={formatDateTime(record?.created_at || record?.marked_at || record?.updated_at)} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Attendance data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Orders</h3>
+                  </div>
+                  {orders.length ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {orders.map((order, index) => (
+                        <div key={order?.id || `${order?.razorpay_order_id || "order"}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium text-slate-900">{order?.event_id || `Order ${index + 1}`}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${order?.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                              {order?.status || "-"}
+                            </span>
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            <InfoField label="Amount" value={typeof order?.amount === "number" ? `${order.amount} ${order?.currency || "INR"}` : "-"} />
+                            <InfoField label="Payment ID" value={order?.razorpay_payment_id || order?.provider_payment_id || "-"} mono />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Order data was not returned for the current include selection.</p>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">Related Members And Slots</h3>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Members</p>
+                      <p className="mt-1 text-sm text-slate-900">{members.length || 0}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Slots</p>
+                      <p className="mt-1 text-sm text-slate-900">{slots.length || 0}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-500">Some blocks are query-dependent. Empty sections mean the API did not return that include for this request.</p>
+                </section>
+              </div>
             </div>
           )}
+        </div>
+
+        <div className="border-t border-slate-200 bg-white/90 px-6 py-4">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -100,7 +337,7 @@ export default function EndeavourParticipants() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [includeInactive, setIncludeInactive] = useState(false);
+  const [includeActive, setIncludeActive] = useState(false);
   const [activeIncludes, setActiveIncludes] = useState(["team", "events"]);
 
   const [selectedParticipantId, setSelectedParticipantId] = useState("");
@@ -122,7 +359,7 @@ export default function EndeavourParticipants() {
       const response = await endeavourApiClient.getParticipantsFull({
         page,
         pageSize: pagination.page_size,
-        includeInactive,
+        includeInactive: !includeActive,
         include: includeQuery,
       });
 
@@ -143,7 +380,7 @@ export default function EndeavourParticipants() {
 
   useEffect(() => {
     fetchParticipants({ showLoader: true, page: 1 });
-  }, [includeInactive, includeQuery]);
+  }, [includeActive, includeQuery]);
 
   const filteredParticipants = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -233,11 +470,11 @@ export default function EndeavourParticipants() {
           <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700">
             <input
               type="checkbox"
-              checked={includeInactive}
-              onChange={(event) => setIncludeInactive(event.target.checked)}
+              checked={includeActive}
+              onChange={(event) => setIncludeActive(event.target.checked)}
               className="h-4 w-4 rounded border-slate-300"
             />
-            Include Inactive
+            Include Active
           </label>
         </div>
 
