@@ -101,34 +101,34 @@ function Layout({ moduleType = 'recruitment' }) {
       >
         {/* Simple Professional Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-          <div className="px-6 lg:px-8">
-            <div className="flex justify-between items-center py-2">
-              <div className="flex items-center space-x-4">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-3 sm:space-x-4 pl-12 sm:pl-0">
                 {/* Logo/Brand */}
                 {isIdeatex ? (
                   <>
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg sm:text-xl shadow-md">
                       I
                     </div>
                     <div>
-                      <h1 className="text-xl font-semibold text-gray-900">
+                      <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                         Ideatex Event
                       </h1>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         Admin Management System
                       </p>
                     </div>
                   </>
                 ) : isEndeavour ? (
                   <>
-                    <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-md">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-white text-lg sm:text-xl shadow-md">
                       E
                     </div>
                     <div>
-                      <h1 className="text-xl font-semibold text-gray-900">
+                      <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                         Endeavour Portal
                       </h1>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         Admin Management System
                       </p>
                     </div>
@@ -138,13 +138,13 @@ function Layout({ moduleType = 'recruitment' }) {
                     <img 
                       src='/logo.png'
                       alt="Recruitment Logo"
-                      className="w-10 h-10 object-contain rounded-lg shadow-md"
+                      className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-lg shadow-md"
                     />
                     <div>
-                      <h1 className="text-xl font-semibold text-gray-900">
+                      <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                         Recruitment Portal
                       </h1>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         Admin Management System
                       </p>
                     </div>
@@ -153,7 +153,7 @@ function Layout({ moduleType = 'recruitment' }) {
               </div>
               
               {/* User Info & Actions */}
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 sm:justify-end">
                 {user && (
                   <>
                     {/* Notifications */}
@@ -166,7 +166,7 @@ function Layout({ moduleType = 'recruitment' }) {
 
                     {/* User Profile */}
                     <div 
-                      className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg cursor-pointer px-3 py-2 hover:bg-gray-100 transition-colors"
+                      className="hidden sm:flex items-center space-x-3 bg-gray-50 rounded-lg cursor-pointer px-3 py-2 hover:bg-gray-100 transition-colors max-w-[280px]"
                       onClick={handleProfileClick}
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -175,10 +175,10 @@ function Layout({ moduleType = 'recruitment' }) {
                         </span>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[120px] lg:max-w-[180px]">
                           {user?.name || 'Admin'}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <div className="text-xs text-gray-500 flex items-center gap-1 truncate max-w-[140px] lg:max-w-[200px]">
                           <span className="w-2 h-2 bg-green-400 rounded-full" />
                           {user?.role || 'Admin'}
                         </div>
@@ -203,7 +203,7 @@ function Layout({ moduleType = 'recruitment' }) {
                     {/* Logout */}
                     <button
                       onClick={handleLogout}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                      className="px-3 py-2 sm:px-4 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
                     >
                       <span className="flex items-center gap-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ function Layout({ moduleType = 'recruitment' }) {
         </header>
 
         {/* Content Area */}
-        <div className="p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-full">
             <Outlet />
           </div>

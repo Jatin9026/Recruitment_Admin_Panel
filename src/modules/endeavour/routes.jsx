@@ -20,7 +20,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.dashboard,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.anyAdminSide}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <EndeavourDashboard />
       </EndeavourProtectedRoute>
     ),
@@ -28,7 +28,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.ecellMembers,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.adminPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <EcellMembers />
       </EndeavourProtectedRoute>
     ),
@@ -36,7 +36,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.roles,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.adminPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <RolesAndAccess />
       </EndeavourProtectedRoute>
     ),
@@ -44,7 +44,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.participants,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.adminPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <EndeavourParticipants />
       </EndeavourProtectedRoute>
     ),
@@ -52,7 +52,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.teams,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.adminPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <EndeavourTeams />
       </EndeavourProtectedRoute>
     ),
@@ -60,7 +60,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.settings,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.adminPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <RuntimeSettings />
       </EndeavourProtectedRoute>
     ),
@@ -76,7 +76,7 @@ export const endeavourRoutes = [
   {
     path: ENDEAVOUR_CHILD_PATHS.events,
     element: (
-      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.eventManagerPlus}>
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.eventPageAccess}>
         <EventOperations />
       </EndeavourProtectedRoute>
     ),

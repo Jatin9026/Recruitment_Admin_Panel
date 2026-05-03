@@ -38,6 +38,7 @@ const handleResponse = async (response) => {
 export const ENDEAVOUR_API_ENDPOINTS = {
   ADMIN_LOGIN: "/admin/auth/login",
   AUTH_ME: "/auth/me",
+  ADMIN_DASHBOARD: "/admin/dashboard",
   ECELL_MEMBERS: "/ecell/ecell-members",
   REMOVE_ECELL_MEMBER: "/admin/ecell-members/remove",
   GRANT_ROLE: "/admin/roles/grant",
@@ -122,6 +123,10 @@ export class EndeavourApiClient {
 
   async getCurrentUser() {
     return this.request(ENDEAVOUR_API_ENDPOINTS.AUTH_ME);
+  }
+
+  async getDashboardStats() {
+    return this.request(ENDEAVOUR_API_ENDPOINTS.ADMIN_DASHBOARD);
   }
 
   async getEcellMembers() {

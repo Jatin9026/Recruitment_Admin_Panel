@@ -23,8 +23,8 @@ export default function AuditTools() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Audit Tools</h1>
         <p className="mt-1 text-sm text-slate-600">Integrated with POST /api/v1/admin/audit/ping (superadmin only)</p>
 

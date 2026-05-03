@@ -67,43 +67,43 @@ const endeavourMenuItems = [
     path: ENDEAVOUR_PATHS.dashboard,
     label: "Dashboard",
     icon: LayoutDashboard,
-    roles: ENDEAVOUR_ALLOWED_ROLES.anyAdminSide,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.ecellMembers,
     label: "Ecell Members",
     icon: UsersRound,
-    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.roles,
     label: "Roles and Access",
     icon: Activity,
-    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.participants,
     label: "Participants",
     icon: UserCheck,
-    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.teams,
     label: "Teams",
     icon: Briefcase,
-    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.settings,
     label: "Settings",
     icon: Settings,
-    roles: ENDEAVOUR_ALLOWED_ROLES.adminPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
   },
   {
     path: ENDEAVOUR_PATHS.events,
     label: "Event Operations",
     icon: Briefcase,
-    roles: ENDEAVOUR_ALLOWED_ROLES.eventManagerPlus,
+    roles: ENDEAVOUR_ALLOWED_ROLES.eventPageAccess,
   },
   {
     path: ENDEAVOUR_PATHS.auditTools,
@@ -316,7 +316,7 @@ export default function Sidebar({ moduleType = "recruitment" }) {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200"
+        className="lg:hidden fixed top-3 left-3 z-50 p-3 bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200"
       >
         {isOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
       </button>
@@ -333,11 +333,11 @@ export default function Sidebar({ moduleType = "recruitment" }) {
       <div
         className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 shadow-lg z-30 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } transition-transform duration-300`}
-        style={{ width: isCollapsed ? 80 : 280 }}
+        } transition-transform duration-300 ease-in-out rounded-r-2xl lg:rounded-none`}
+        style={{ width: isCollapsed ? 80 : 280, maxWidth: 'calc(100vw - 1rem)' }}
       >
         {/* Header */}
-        <div className={`flex items-center justify-center p-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
+        <div className={`flex items-center justify-center p-3 sm:p-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
           isCollapsed ? 'px-2 py-4' : ''
         }`}>
           {!isCollapsed ? (
@@ -411,7 +411,7 @@ export default function Sidebar({ moduleType = "recruitment" }) {
         {/* User Profile */}
         {user && (
           <div className={`border-b border-gray-200 bg-gray-50 flex-shrink-0 ${
-            isCollapsed ? 'p-2' : 'p-4'
+            isCollapsed ? 'p-2' : 'p-3 sm:p-4'
           }`}>
             {!isCollapsed ? (
               <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-colors" onClick={handleProfileClick}>

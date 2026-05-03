@@ -1,8 +1,6 @@
 export const ENDEAVOUR_ROLE_RANKS = {
-  attendance_coordinator: 1,
   event_manager: 1,
   content_manager: 1,
-  kit_coordinator: 1,
   admin: 2,
   superadmin: 3,
 };
@@ -41,12 +39,35 @@ export const hasAnyEndeavourRoleAccess = (userRole, allowedRoles = []) => {
   return allowedRoles.some((role) => hasEndeavourRoleAccess(userRole, role));
 };
 
+/**
+ * Check if user can access a specific page based on their role
+ * @param {string} userRole - User's role
+ * @param {string} pageName - Page to check access for (e.g., 'event', 'dashboard', 'teams')
+ * @returns {boolean} - True if user can access the page
+ */
+export const canAccessEndeavourPage = (userRole, pageName) => {
+  const normalizedRole = normalizeEndeavourRole(userRole);
+  
+  // Superadmin has access to all pages
+  if (normalizedRole === "superadmin") {
+    return true;
+  }
+  
+  // Other roles (admin, event_manager, content_manager) can only access event page
+  if (["admin", "event_manager", "content_manager"].includes(normalizedRole)) {
+    return pageName === "event" || pageName === "events";
+  }
+  
+  return false;
+};
+
 export const ENDEAVOUR_ALLOWED_ROLES = {
-  anyAdminSide: ["attendance_coordinator", "event_manager", "content_manager", "kit_coordinator", "admin", "superadmin"],
-  adminPlus: ["admin", "superadmin"],
   superadminOnly: ["superadmin"],
-  eventManagerPlus: ["event_manager", "admin", "superadmin"],
-  attendanceCoordinatorPlus: ["attendance_coordinator", "admin", "superadmin"],
-  kitCoordinatorPlus: ["kit_coordinator", "admin", "superadmin"],
-  contentManagerPlus: ["content_manager", "admin", "superadmin"],
+  adminPlusRoles: ["admin", "event_manager", "content_manager", "superadmin"],
+  // Event page access: all roles can access event page
+  eventPageAccess: ["admin", "event_manager", "content_manager", "superadmin"],
+  // Full access (all pages): only superadmin
+  fullPageAccess: ["superadmin"],
+  // Restricted roles (only event page access)
+  eventPageOnly: ["admin", "event_manager", "content_manager"],
 };
