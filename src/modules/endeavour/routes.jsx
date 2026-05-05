@@ -8,6 +8,8 @@ import EndeavourTeams from "../../pages/endeavour/teams/Teams";
 import RuntimeSettings from "../../pages/endeavour/settings/RuntimeSettings";
 import AuditTools from "../../pages/endeavour/audit/AuditTools";
 import EventOperations from "../../pages/endeavour/events/EventOperations";
+import PaymentVerification from "../../pages/endeavour/payments/PaymentVerification";
+import PaymentAccounts from "../../pages/endeavour/payments/PaymentAccounts";
 import { ENDEAVOUR_CHILD_PATHS, ENDEAVOUR_PATHS } from "./paths";
 import EndeavourProtectedRoute from "../../components/EndeavourProtectedRoute";
 import { ENDEAVOUR_ALLOWED_ROLES } from "../../utils/endeavourRoleAccess";
@@ -70,6 +72,22 @@ export const endeavourRoutes = [
     element: (
       <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <AuditTools />
+      </EndeavourProtectedRoute>
+    ),
+  },
+  {
+    path: ENDEAVOUR_CHILD_PATHS.paymentsVerification,
+    element: (
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
+        <PaymentVerification />
+      </EndeavourProtectedRoute>
+    ),
+  },
+  {
+    path: ENDEAVOUR_CHILD_PATHS.paymentsAccounts,
+    element: (
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
+        <PaymentAccounts />
       </EndeavourProtectedRoute>
     ),
   },

@@ -49,6 +49,11 @@ export const ENDEAVOUR_API_ENDPOINTS = {
   TEAM_FULL: "/admin/teams/{team_id}/full",
   ADMIN_SETTINGS: "/admin/settings",
   ADMIN_AUDIT_PING: "/admin/audit/ping",
+  PENDING_VERIFICATION_ORDERS: "/admin/orders/pending-verification",
+  VERIFY_ORDER: "/admin/orders/{order_id}/verify",
+  CASH_COLLECT_ORDER: "/admin/orders/{order_id}/cash-collect",
+  PAYMENT_ACCOUNTS: "/admin/payments/accounts",
+  RESET_PAYMENT_QRS: "/admin/payments/reset-qrs",
   EVENTS: "/events",
   EVENT_DETAILS: "/events/{event_id}",
   EVENT_COORDINATORS: "/events/{event_id}/rounds/{round_id}/panels/{panel_id}/coordinators",
@@ -200,6 +205,37 @@ export class EndeavourApiClient {
 
   async pingAudit() {
     return this.request(ENDEAVOUR_API_ENDPOINTS.ADMIN_AUDIT_PING, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getPendingVerificationOrders() {
+    return this.request(ENDEAVOUR_API_ENDPOINTS.PENDING_VERIFICATION_ORDERS);
+  }
+
+  async verifyOrder(orderId, action = "approve") {
+    const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.VERIFY_ORDER, { order_id: orderId });
+    return this.request(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    });
+  }
+
+  async collectCashOrder(orderId) {
+    const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.CASH_COLLECT_ORDER, { order_id: orderId });
+    return this.request(endpoint, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getPaymentAccounts() {
+    return this.request(ENDEAVOUR_API_ENDPOINTS.PAYMENT_ACCOUNTS);
+  }
+
+  async resetPaymentQrUsage() {
+    return this.request(ENDEAVOUR_API_ENDPOINTS.RESET_PAYMENT_QRS, {
       method: "POST",
       body: JSON.stringify({}),
     });
