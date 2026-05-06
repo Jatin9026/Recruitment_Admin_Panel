@@ -12,6 +12,7 @@ export const ENDEAVOUR_CHILD_PATHS = {
   paymentsVerification: "payments/verification",
   paymentsAccounts: "payments/accounts",
   events: "events",
+  eventOperations: "events/:eventId/operations",
   contentDomains: "content/domains",
   contentPastEvents: "content/past-events",
   contentSpeakers: "content/speakers",
@@ -32,9 +33,13 @@ export const ENDEAVOUR_PATHS = {
   paymentsVerification: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.paymentsVerification}`,
   paymentsAccounts: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.paymentsAccounts}`,
   events: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.events}`,
+  eventOperations: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.eventOperations}`,
   contentDomains: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentDomains}`,
   contentPastEvents: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentPastEvents}`,
   contentSpeakers: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentSpeakers}`,
   contentSponsors: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentSponsors}`,
   contentMedia: `${ENDEAVOUR_ROOT}/${ENDEAVOUR_CHILD_PATHS.contentMedia}`,
 };
+
+export const getEndeavourEventOperationsPath = (eventId) =>
+  `${ENDEAVOUR_PATHS.events}/${eventId}/operations`;

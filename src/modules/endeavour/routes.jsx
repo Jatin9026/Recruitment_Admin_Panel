@@ -7,7 +7,8 @@ import EndeavourParticipants from "../../pages/endeavour/participants/Participan
 import EndeavourTeams from "../../pages/endeavour/teams/Teams";
 import RuntimeSettings from "../../pages/endeavour/settings/RuntimeSettings";
 import AuditTools from "../../pages/endeavour/audit/AuditTools";
-import EventOperations from "../../pages/endeavour/events/EventOperations";
+import EventManagerPage from "../../pages/endeavour/events/EventManagerPage";
+import EventOperationsPage from "../../pages/endeavour/events/EventOperationsPage";
 import PaymentVerification from "../../pages/endeavour/payments/PaymentVerification";
 import PaymentAccounts from "../../pages/endeavour/payments/PaymentAccounts";
 import { ENDEAVOUR_CHILD_PATHS, ENDEAVOUR_PATHS } from "./paths";
@@ -95,7 +96,15 @@ export const endeavourRoutes = [
     path: ENDEAVOUR_CHILD_PATHS.events,
     element: (
       <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.eventPageAccess}>
-        <EventOperations />
+        <EventManagerPage />
+      </EndeavourProtectedRoute>
+    ),
+  },
+  {
+    path: ENDEAVOUR_CHILD_PATHS.eventOperations,
+    element: (
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.eventPageAccess}>
+        <EventOperationsPage />
       </EndeavourProtectedRoute>
     ),
   },
