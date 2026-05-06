@@ -81,9 +81,14 @@ export default function PaymentVerification() {
       }
 
       setError("");
-      const response = await endeavourApiClient.getPendingVerificationOrders(
-        upiId ? { upi_id: upiId } : {}
-      );
+
+      // Build the query string so the upi_id param is always sent in the URL
+      // e.g. /pending-verification?upi_id=8869927409%40airtel
+      const queryString = upiId
+        ? `?upi_id=${encodeURIComponent(upiId)}`
+        : "";
+
+      const response = await endeavourApiClient.getPendingVerificationOrders(queryString);
       const list = response?.data || response?.orders || [];
       setOrders(Array.isArray(list) ? list : []);
     } catch (err) {
