@@ -168,6 +168,21 @@ export default function PaymentVerification() {
     }
   };
 
+    const handleReject = async (orderId) => {
+    try {
+      setActionLoading(orderId);
+      setError("");
+      setSuccess("");
+      await endeavourApiClient.verifyOrder(orderId, "reject");
+      setSuccess("Order rejected.");
+      await fetchOrders({ showLoader: false });
+    } catch (err) {
+      setError(err?.message || "Reject failed.");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
   const handleCashCollect = async (orderId) => {
     const shouldContinue = window.confirm("Collect cash and generate tickets for this order?");
     if (!shouldContinue) return;
