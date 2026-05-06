@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Banknote,
   CheckCircle2,
+  ChevronDown,
   Loader2,
   ReceiptText,
   RefreshCw,
@@ -11,8 +12,20 @@ import {
   ShieldCheck,
   Clock3,
   IndianRupee,
+  SlidersHorizontal,
 } from "lucide-react";
 import { endeavourApiClient } from "../../../utils/endeavourApiConfig";
+
+const UPI_IDS = [
+  "8869927409@ptsbi",
+  "8869927409@airtel",
+  "8869927409@slc",
+  "yashjiobank@ibl",
+  "9984444892@ibl",
+  "8171445434@ptyes",
+  "9984444892-2@axl",
+  "8171445434@slc",
+];
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -53,11 +66,13 @@ export default function PaymentVerification() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUpiId, setSelectedUpiId] = useState("");
+  const [upiDropdownOpen, setUpiDropdownOpen] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [selectedReceipt, setSelectedReceipt] = useState(null);
 
-  const fetchOrders = async ({ showLoader = true } = {}) => {
+  const fetchOrders = async ({ showLoader = true, upiId = selectedUpiId } = {}) => {
     try {
       if (showLoader) {
         setLoading(true);
@@ -66,7 +81,9 @@ export default function PaymentVerification() {
       }
 
       setError("");
-      const response = await endeavourApiClient.getPendingVerificationOrders();
+      const response = await endeavourApiClient.getPendingVerificationOrders(
+        upiId ? { upi_id: upiId } : {}
+      );
       const list = response?.data || response?.orders || [];
       setOrders(Array.isArray(list) ? list : []);
     } catch (err) {
@@ -79,8 +96,21 @@ export default function PaymentVerification() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    fetchOrders({ showLoader: true, upiId: selectedUpiId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUpiId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!upiDropdownOpen) return;
+    const handler = (e) => {
+      if (!e.target.closest("#upi-dropdown-root")) {
+        setUpiDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [upiDropdownOpen]);
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -91,6 +121,8 @@ export default function PaymentVerification() {
         order.id,
         order.event_id,
         order.user_id,
+        order.user_name,
+        order.upi_id,
         order.utr_number,
         order.payment_mode,
         order.verification_status,
@@ -136,9 +168,7 @@ export default function PaymentVerification() {
 
   const handleCashCollect = async (orderId) => {
     const shouldContinue = window.confirm("Collect cash and generate tickets for this order?");
-    if (!shouldContinue) {
-      return;
-    }
+    if (!shouldContinue) return;
 
     try {
       setActionLoading(orderId);
@@ -172,21 +202,89 @@ export default function PaymentVerification() {
         animate={{ opacity: 1, y: 0 }}
         className="mx-auto max-w-7xl space-y-6"
       >
+        {/* ── Header ── */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Payment Verification</h1>
-                  <p className="mt-1 text-sm text-slate-600">Review pending manual orders and process verification or cash collection.</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Payment Verification</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Review pending manual orders and process verification or cash collection.
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* ── UPI ID Filter Dropdown ── */}
+              <div id="upi-dropdown-root" className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUpiDropdownOpen((v) => !v)}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition
+                    ${selectedUpiId
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {selectedUpiId ? (
+                    <span className="max-w-[160px] truncate">{selectedUpiId}</span>
+                  ) : (
+                    "Filter by UPI ID"
+                  )}
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${upiDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {upiDropdownOpen && (
+                  <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <div className="border-b border-slate-100 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Select UPI Account
+                      </p>
+                    </div>
+                    <ul className="max-h-64 overflow-y-auto py-1">
+                      {/* "All" option */}
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUpiId("");
+                            setUpiDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm transition hover:bg-slate-50
+                            ${!selectedUpiId ? "font-semibold text-emerald-700" : "text-slate-700"}`}
+                        >
+                          <span className={`h-2 w-2 rounded-full ${!selectedUpiId ? "bg-emerald-500" : "bg-transparent border border-slate-300"}`} />
+                          All UPI IDs
+                        </button>
+                      </li>
+                      {UPI_IDS.map((upi) => (
+                        <li key={upi}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedUpiId(upi);
+                              setUpiDropdownOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-2 px-4 py-2.5 text-sm font-mono transition hover:bg-slate-50
+                              ${selectedUpiId === upi ? "font-semibold text-emerald-700" : "text-slate-700"}`}
+                          >
+                            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${selectedUpiId === upi ? "bg-emerald-500" : "bg-transparent border border-slate-300"}`} />
+                            {upi}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Refresh ── */}
               <button
                 type="button"
                 onClick={() => fetchOrders({ showLoader: false })}
@@ -197,14 +295,15 @@ export default function PaymentVerification() {
                 {refreshing ? "Refreshing..." : "Refresh"}
               </button>
 
+              {/* ── Search ── */}
               <div className="relative min-w-[260px] flex-1 lg:flex-none">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   type="search"
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search order, UTR, user, account..."
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none ring-0 transition placeholder:text-slate-400 focus:border-emerald-500"
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search order, UTR, user, UPI..."
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -229,6 +328,7 @@ export default function PaymentVerification() {
           )}
         </div>
 
+        {/* ── Stats ── */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <StatCard title="Pending Orders" value={stats.total} icon={ReceiptText} accent="emerald" />
           <StatCard title="Manual Orders" value={stats.manual} icon={Banknote} accent="slate" />
@@ -236,14 +336,22 @@ export default function PaymentVerification() {
           <StatCard title="Amount Total" value={formatCurrency(stats.amount)} icon={Clock3} accent="blue" compact />
         </div>
 
+        {/* ── Table ── */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Pending Verification Orders</h2>
-                <p className="text-sm text-slate-600">Showing {filteredOrders.length} orders ready for review.</p>
+                <p className="text-sm text-slate-600">
+                  Showing {filteredOrders.length} orders
+                  {selectedUpiId && (
+                    <span className="ml-1 font-medium text-emerald-700">
+                      · filtered by <span className="font-mono">{selectedUpiId}</span>
+                    </span>
+                  )}
+                </p>
               </div>
-              <div className="text-sm text-slate-500">Live data from /admin/orders/pending-verification</div>
+              <div className="text-sm text-slate-500">Live · /admin/orders/pending-verification</div>
             </div>
           </div>
 
@@ -253,6 +361,7 @@ export default function PaymentVerification() {
                 <tr>
                   <Th>Order</Th>
                   <Th>User / Event</Th>
+                  <Th>UPI ID</Th>
                   <Th>Amount</Th>
                   <Th>Status</Th>
                   <Th>Receipt</Th>
@@ -262,10 +371,12 @@ export default function PaymentVerification() {
               <tbody className="divide-y divide-slate-200 bg-white">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center">
+                    <td colSpan={7} className="px-6 py-16 text-center">
                       <ReceiptText className="mx-auto mb-3 h-12 w-12 text-slate-300" />
                       <h3 className="text-base font-medium text-slate-900">No pending orders found</h3>
-                      <p className="mt-1 text-sm text-slate-500">Try clearing the search or refresh the list.</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Try clearing the search, changing the UPI filter, or refreshing.
+                      </p>
                     </td>
                   </tr>
                 ) : (
@@ -274,6 +385,7 @@ export default function PaymentVerification() {
 
                     return (
                       <tr key={order.id} className="hover:bg-slate-50/70">
+                        {/* Order */}
                         <Td>
                           <div className="space-y-1">
                             <p className="font-mono text-sm font-medium text-slate-900">{shortId(order.id)}</p>
@@ -281,19 +393,44 @@ export default function PaymentVerification() {
                             <p className="text-xs text-slate-500">{formatDateTime(order.created_at)}</p>
                           </div>
                         </Td>
+
+                        {/* User / Event */}
                         <Td>
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-slate-900">{order.event_id || "Unknown event"}</p>
-                            <p className="text-xs text-slate-500">User {shortId(order.user_id)}</p>
+                            <p className="text-sm font-medium text-slate-900">
+                              {order.user_name || "Unknown user"}
+                            </p>
+                            <p className="text-xs text-slate-500">ID {shortId(order.user_id)}</p>
+                            <p className="text-xs text-slate-500">Event {order.event_id || "—"}</p>
                             <p className="text-xs text-slate-500">Account {shortId(order.assigned_account_id)}</p>
                           </div>
                         </Td>
+
+                        {/* UPI ID */}
                         <Td>
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold text-slate-900">{formatCurrency(order.amount, order.currency)}</p>
+                            {order.upi_id ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs text-slate-700">
+                                <IndianRupee className="h-3 w-3 text-slate-400" />
+                                {order.upi_id}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </div>
+                        </Td>
+
+                        {/* Amount */}
+                        <Td>
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {formatCurrency(order.amount, order.currency)}
+                            </p>
                             <Badge>{order.payment_mode || "Unknown"}</Badge>
                           </div>
                         </Td>
+
+                        {/* Status */}
                         <Td>
                           <div className="space-y-2">
                             <Badge tone="blue">{order.verification_status || "Unknown"}</Badge>
@@ -303,6 +440,8 @@ export default function PaymentVerification() {
                             </div>
                           </div>
                         </Td>
+
+                        {/* Receipt */}
                         <Td>
                           <button
                             type="button"
@@ -311,9 +450,11 @@ export default function PaymentVerification() {
                             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <ReceiptText className="h-4 w-4" />
-                            View Receipt
+                            View
                           </button>
                         </Td>
+
+                        {/* Actions */}
                         <Td>
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -322,8 +463,12 @@ export default function PaymentVerification() {
                               disabled={actionBusy}
                               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                              Verify Transaction
+                              {actionBusy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4" />
+                              )}
+                              Verify
                             </button>
 
                             <button
@@ -332,7 +477,11 @@ export default function PaymentVerification() {
                               disabled={actionBusy}
                               className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+                              {actionBusy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Banknote className="h-4 w-4" />
+                              )}
                               Cash Collect
                             </button>
                           </div>
@@ -347,6 +496,7 @@ export default function PaymentVerification() {
         </div>
       </motion.div>
 
+      {/* ── Receipt Modal ── */}
       {selectedReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -367,7 +517,6 @@ export default function PaymentVerification() {
                 Close
               </button>
             </div>
-
             <div className="max-h-[80vh] overflow-auto bg-slate-100 p-4 sm:p-6">
               <div className="flex justify-center">
                 <img
@@ -386,6 +535,8 @@ export default function PaymentVerification() {
     </div>
   );
 }
+
+/* ── Sub-components ── */
 
 function StatCard({ title, value, icon: Icon, accent = "slate", compact = false }) {
   const accentClasses = {
@@ -415,12 +566,19 @@ function Badge({ children, tone = "slate" }) {
     slate: "bg-slate-100 text-slate-700",
     blue: "bg-blue-50 text-blue-700",
   };
-
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone] || tones.slate}`}>{children}</span>;
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone] || tones.slate}`}>
+      {children}
+    </span>
+  );
 }
 
 function Th({ children }) {
-  return <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{children}</th>;
+  return (
+    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      {children}
+    </th>
+  );
 }
 
 function Td({ children }) {
