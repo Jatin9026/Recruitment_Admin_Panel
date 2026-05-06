@@ -474,6 +474,20 @@ export default function PaymentVerification() {
 
                             <button
                               type="button"
+                              onClick={() => handleReject(order.id)}
+                              disabled={actionBusy}
+                              className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {actionBusy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )}
+                              Reject
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handleCashCollect(order.id)}
                               disabled={actionBusy}
                               className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
