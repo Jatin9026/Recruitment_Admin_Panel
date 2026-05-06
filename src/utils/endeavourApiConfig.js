@@ -210,8 +210,10 @@ export class EndeavourApiClient {
     });
   }
 
-  async getPendingVerificationOrders() {
-    return this.request(ENDEAVOUR_API_ENDPOINTS.PENDING_VERIFICATION_ORDERS);
+    async getPendingVerificationOrders(params = {}) {
+    const query = buildQueryParams(params);
+    const endpoint = ENDEAVOUR_API_ENDPOINTS.PENDING_VERIFICATION_ORDERS;
+    return this.request(query ? `${endpoint}?${query}` : endpoint);
   }
 
   async verifyOrder(orderId, action = "approve") {
