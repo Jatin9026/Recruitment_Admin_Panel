@@ -1,9 +1,32 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, ArrowRight, RefreshCw, Users, UsersRound, TrendingUp, DollarSign, BarChart3 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  RefreshCw,
+  Users,
+  UsersRound,
+  TrendingUp,
+  DollarSign,
+  BarChart3,
+  Calculator,
+} from "lucide-react";
 import { useEndeavourAuthStore } from "../../../store/endeavourAuthStore";
 import { ENDEAVOUR_PATHS } from "../../../modules/endeavour/paths";
 import { endeavourApiClient } from "../../../utils/endeavourApiConfig";
+
+/** Per-team registration fee by event id — source for expected payment calculations. */
+const EVENT_REGISTRATION_PRICES = {
+  "ipl-mania": 299,
+  "treasure-hunt": 299,
+  "bgmi-battle-royale": 249,
+  "b-plan": 299,
+  "market-watch": 249,
+  "corporate-arena": 249,
+  "b-quiz": 249,
+  "hacktrepreneur": 399,
+  "entertainment-eve": 299,
+};
 
 const quickLinks = [
   {
@@ -43,9 +66,8 @@ export default function EndeavourDashboard() {
 
         setError("");
 
-        const response = await endeavourApiClient.getDashboardStats();
-        const data = response?.data || {};
-
+        const statsRes = await endeavourApiClient.getDashboardStats();
+        const data = statsRes?.data || {};
         setDashboardData(data);
         setLastUpdated(new Date().toLocaleString());
       } catch (err) {
@@ -62,11 +84,30 @@ export default function EndeavourDashboard() {
     fetchDashboardData({ showLoader: true });
   }, [fetchDashboardData]);
 
-  const teams = dashboardData?.teams || {};
   const orders = dashboardData?.orders || {};
   const eventWiseData = dashboardData?.teams?.by_event || [];
   const paidAmount = Number(orders.paid_amount || 0);
   const totalEventTeams = eventWiseData.reduce((sum, item) => sum + Number(item?.total || 0), 0);
+
+  const teamFeeBreakdown = React.useMemo(() => {
+    const rows = eventWiseData.map((item) => {
+      const teamCount = Number(item?.total || 0);
+      const unitPrice = EVENT_REGISTRATION_PRICES[item.event_id] ?? 0;
+      const subtotal = teamCount * unitPrice;
+      return {
+        event_id: item.event_id,
+        event_name: item.event_name || item.event_id,
+        teamCount,
+        unitPrice,
+        subtotal,
+      };
+    });
+    const manualTotalFromTeams = rows.reduce((sum, r) => sum + r.subtotal, 0);
+    return { rows, manualTotalFromTeams };
+  }, [eventWiseData]);
+
+  const { rows: teamFeeRows, manualTotalFromTeams } = teamFeeBreakdown;
+  const paymentDelta = paidAmount - manualTotalFromTeams;
 
   const statCards = [
     {
@@ -91,11 +132,18 @@ export default function EndeavourDashboard() {
       accent: "from-indigo-600 to-indigo-500",
     },
     {
-      title: "Paid Amount",
+      title: "Paid Amount (orders)",
       value: `₹${paidAmount.toFixed(2)}`,
-      subtitle: "Total amount collected",
+      subtitle: "Recorded collected amount",
       icon: DollarSign,
       accent: "from-emerald-600 to-emerald-500",
+    },
+    {
+      title: "Expected from teams",
+      value: `₹${manualTotalFromTeams.toFixed(2)}`,
+      subtitle: "Teams × registration fee per event",
+      icon: Calculator,
+      accent: "from-teal-600 to-teal-500",
     },
   ];
 
@@ -142,7 +190,7 @@ export default function EndeavourDashboard() {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {statCards.map((card) => (
               <article
                 key={card.title}
@@ -202,16 +250,88 @@ export default function EndeavourDashboard() {
             )}
           </section>
 
+          {/* Expected payment from team counts × fee */}
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-teal-600" />
+                <h2 className="text-lg font-semibold text-slate-900">Expected payment by event</h2>
+              </div>
+              <p className="text-sm font-semibold text-slate-800">
+                Total expected:{" "}
+                <span className="text-teal-700">₹{manualTotalFromTeams.toFixed(2)}</span>
+              </p>
+            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              Each row is teams × that event&apos;s registration fee defined in EVENT_REGISTRATION_PRICES at the top of this file.
+            </p>
+
+            {teamFeeRows.length > 0 ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Event</th>
+                      <th className="px-4 py-3 text-right font-semibold text-slate-700">Teams</th>
+                      <th className="px-4 py-3 text-right font-semibold text-slate-700">Fee / team (₹)</th>
+                      <th className="px-4 py-3 text-right font-semibold text-slate-700">Expected (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamFeeRows.map((row) => (
+                      <tr key={row.event_id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-3 font-medium text-slate-700">{row.event_name}</td>
+                        <td className="px-4 py-3 text-right text-slate-800">{row.teamCount}</td>
+                        <td className="px-4 py-3 text-right text-slate-800">{row.unitPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                          ₹{row.subtotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold text-slate-900">Sum of event expected amounts</span>
+                  <span className="font-semibold text-teal-800">₹{manualTotalFromTeams.toFixed(2)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
+                <p className="text-sm">No team data to calculate expected payments</p>
+              </div>
+            )}
+          </section>
+
           {/* Orders Summary */}
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="text-lg font-semibold text-slate-900">Payment Summary</h2>
-            <p className="mt-1 text-sm text-slate-600">Financial overview of event registrations</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Compare order totals with the manual expected total from team registrations.
+            </p>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase text-slate-600">Paid Amount</p>
+                <p className="text-xs font-semibold uppercase text-slate-600">Paid amount (orders)</p>
                 <p className="mt-2 text-2xl font-bold text-slate-900">₹{paidAmount.toFixed(2)}</p>
-                <p className="mt-1 text-sm text-slate-600">Only the collected amount is shown here</p>
+                <p className="mt-1 text-sm text-slate-600">Amount recorded as collected on orders</p>
+              </div>
+              <div className="rounded-lg border border-teal-200 bg-teal-50/80 p-4">
+                <p className="text-xs font-semibold uppercase text-teal-800">Expected (teams × fee)</p>
+                <p className="mt-2 text-2xl font-bold text-teal-900">₹{manualTotalFromTeams.toFixed(2)}</p>
+                <p className="mt-1 text-sm text-teal-800/90">Uses dashboard team counts and fixed fees in code</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-4 sm:col-span-2 lg:col-span-1">
+                <p className="text-xs font-semibold uppercase text-slate-600">Difference (paid − expected)</p>
+                <p
+                  className={`mt-2 text-2xl font-bold ${
+                    Math.abs(paymentDelta) < 0.01 ? "text-slate-900" : paymentDelta > 0 ? "text-amber-700" : "text-rose-700"
+                  }`}
+                >
+                  ₹{paymentDelta.toFixed(2)}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Positive means collected exceeds team-based expectation; negative means the opposite.
+                </p>
               </div>
             </div>
           </section>
