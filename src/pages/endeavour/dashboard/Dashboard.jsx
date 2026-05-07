@@ -251,7 +251,7 @@ export default function EndeavourDashboard() {
     },
     {
       title: "Expected from teams",
-      value: `₹$27336`,
+      value: `₹27336.00`,
       subtitle: "Teams × registration fee per event",
       icon: Calculator,
       accent: "from-teal-600 to-teal-500",
