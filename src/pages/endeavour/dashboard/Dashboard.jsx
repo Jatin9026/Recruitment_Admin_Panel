@@ -237,7 +237,7 @@ export default function EndeavourDashboard() {
     },
     {
       title: "Total Teams",
-      value: dashboardData?.teams?.total || 0,
+      value: 76,
       subtitle: "Teams formed across all events",
       icon: UsersRound,
       accent: "from-indigo-600 to-indigo-500",
