@@ -50,6 +50,7 @@ export const ENDEAVOUR_API_ENDPOINTS = {
   ADMIN_SETTINGS: "/admin/settings",
   ADMIN_AUDIT_PING: "/admin/audit/ping",
   PENDING_VERIFICATION_ORDERS: "/admin/orders/pending-verification",
+  ORDERS_VERIFICATION: "/admin/orders/verification",
   VERIFY_ORDER: "/admin/orders/{order_id}/verify",
   CASH_COLLECT_ORDER: "/admin/orders/{order_id}/cash-collect",
   PAYMENT_ACCOUNTS: "/admin/payments/accounts",
@@ -213,6 +214,12 @@ export class EndeavourApiClient {
     async getPendingVerificationOrders(params = {}) {
     const query = buildQueryParams(params);
     const endpoint = ENDEAVOUR_API_ENDPOINTS.PENDING_VERIFICATION_ORDERS;
+    return this.request(query ? `${endpoint}?${query}` : endpoint);
+  }
+
+  async getOrdersVerification(params = {}) {
+    const query = buildQueryParams(params);
+    const endpoint = ENDEAVOUR_API_ENDPOINTS.ORDERS_VERIFICATION;
     return this.request(query ? `${endpoint}?${query}` : endpoint);
   }
 
