@@ -34,34 +34,92 @@ const EVENT_REGISTRATION_PRICES = {
  */
 const USE_DUMMY_DASHBOARD_DATA = true;
 
-/**
- * Dummy event-wise team counts: 76 teams (within ~70–80); teams × EVENT_REGISTRATION_PRICES = ₹28,024 (~28k).
- * (53×399 + 23×299 — exact total with integer teams at the configured fees.)
- */
-const DUMMY_TEAMS_BY_EVENT = [
-  { event_id: "ipl-mania", event_name: "IPL Mania", total: 6 },
-  { event_id: "treasure-hunt", event_name: "Treasure Hunt", total: 6 },
-  { event_id: "b-plan", event_name: "B-Plan", total: 6 },
-  { event_id: "entertainment-eve", event_name: "Entertainment Eve", total: 5 },
-  { event_id: "hacktrepreneur", event_name: "Hacktrepreneur", total: 53 },
+/** Eight events used for dummy dashboard (matches endeavour pricing keys; excludes entertainment-eve). */
+const DUMMY_DASHBOARD_EVENT_IDS = [
+  "ipl-mania",
+  "treasure-hunt",
+  "bgmi-battle-royale",
+  "b-plan",
+  "market-watch",
+  "corporate-arena",
+  "b-quiz",
+  "hacktrepreneur",
 ];
 
-/** Paid / expected amount for dummy mode (matches sum of DUMMY_TEAMS_BY_EVENT × fees). */
+/** Fallback labels when API does not return `event_name` for an id. */
+const DEFAULT_EVENT_NAMES_BY_ID = {
+  "ipl-mania": "IPL Mania",
+  "treasure-hunt": "Treasure Hunt",
+  "bgmi-battle-royale": "BGMI Battle Royale",
+  "b-plan": "B-Plan",
+  "market-watch": "Market Watch",
+  "corporate-arena": "Corporate Arena",
+  "b-quiz": "B-Quiz",
+  "hacktrepreneur": "Hacktrepreneur",
+  "entertainment-eve": "Entertainment Eve",
+};
+
+/**
+ * Team counts per event: 76 teams total; Σ(teams × fee) = ₹28,024 (~28k).
+ * Split follows fee tiers from EVENT_REGISTRATION_PRICES (55×399 + 17×299 + 4×249).
+ */
+const DUMMY_TEAM_TOTALS_BY_EVENT_ID = {
+  "ipl-mania": 6,
+  "treasure-hunt": 6,
+  "b-plan": 5,
+  "bgmi-battle-royale": 1,
+  "market-watch": 1,
+  "corporate-arena": 1,
+  "b-quiz": 1,
+  "hacktrepreneur": 55,
+};
+
+/** Paid / expected amount for dummy mode (matches Σ DUMMY_TEAM_TOTALS × fees). */
 const DUMMY_PAID_AMOUNT = 28024;
 
 /** Total registered users shown when dummy mode is on. */
 const DUMMY_USERS_TOTAL = 142;
 
+function buildDummyTeamsByEvent(apiByEvent) {
+  const rows = Array.isArray(apiByEvent) ? apiByEvent : [];
+  const firstApiIndexById = new Map();
+  rows.forEach((row, idx) => {
+    const id = row?.event_id;
+    if (id && EVENT_REGISTRATION_PRICES[id] != null && !firstApiIndexById.has(id)) {
+      firstApiIndexById.set(id, idx);
+    }
+  });
+
+  const orderedIds = [...DUMMY_DASHBOARD_EVENT_IDS].sort((a, b) => {
+    const ia = firstApiIndexById.has(a) ? firstApiIndexById.get(a) : 9999;
+    const ib = firstApiIndexById.has(b) ? firstApiIndexById.get(b) : 9999;
+    if (ia !== ib) return ia - ib;
+    return DUMMY_DASHBOARD_EVENT_IDS.indexOf(a) - DUMMY_DASHBOARD_EVENT_IDS.indexOf(b);
+  });
+
+  return orderedIds.map((event_id) => {
+    const apiRow = rows.find((r) => r.event_id === event_id);
+    const event_name =
+      apiRow?.event_name?.trim() || DEFAULT_EVENT_NAMES_BY_ID[event_id] || event_id;
+    const total = DUMMY_TEAM_TOTALS_BY_EVENT_ID[event_id] ?? 0;
+    return { event_id, event_name, total };
+  });
+}
+
 function applyDummyDashboardData(backendData) {
   const base = backendData && typeof backendData === "object" ? backendData : {};
+  const apiByEvent = base?.teams?.by_event;
+  const by_event = buildDummyTeamsByEvent(apiByEvent);
+  const teamsTotal = by_event.reduce((s, e) => s + Number(e.total || 0), 0);
+
   return {
     ...base,
     users: { ...base.users, total: DUMMY_USERS_TOTAL },
     orders: { ...base.orders, paid_amount: DUMMY_PAID_AMOUNT },
     teams: {
       ...base.teams,
-      total: DUMMY_TEAMS_BY_EVENT.reduce((s, e) => s + Number(e.total || 0), 0),
-      by_event: DUMMY_TEAMS_BY_EVENT.map((row) => ({ ...row })),
+      total: teamsTotal,
+      by_event,
     },
   };
 }
