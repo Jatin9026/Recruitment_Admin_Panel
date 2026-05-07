@@ -177,16 +177,17 @@ export class EndeavourApiClient {
     return this.request(query ? `${endpoint}?${query}` : endpoint);
   }
 
-  async getTeamsFull({ page = 1, pageSize = 25, include = "" } = {}) {
+ async getTeamsFull({ page = 1, pageSize = 25, include = "", eventId = "" } = {}) {
     const query = buildQueryParams({
       page: String(page),
       page_size: String(pageSize),
       ...(include ? { include } : {}),
+      ...(eventId ? { event_id: String(eventId) } : {}),
     });
 
     return this.request(`${ENDEAVOUR_API_ENDPOINTS.TEAMS_FULL}?${query}`);
   }
-
+  
   async getTeamFull(teamId, include = "") {
     const query = buildQueryParams(include ? { include } : {});
     const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.TEAM_FULL, { team_id: teamId });
