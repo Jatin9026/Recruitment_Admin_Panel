@@ -28,6 +28,44 @@ const EVENT_REGISTRATION_PRICES = {
   "entertainment-eve": 299,
 };
 
+/**
+ * When true, replaces dashboard metrics with consistent dummy data (~₹28k collected,
+ * ~76 teams in 70–80 range) regardless of API response. Turn off for live backend stats.
+ */
+const USE_DUMMY_DASHBOARD_DATA = true;
+
+/**
+ * Dummy event-wise team counts: 76 teams (within ~70–80); teams × EVENT_REGISTRATION_PRICES = ₹28,024 (~28k).
+ * (53×399 + 23×299 — exact total with integer teams at the configured fees.)
+ */
+const DUMMY_TEAMS_BY_EVENT = [
+  { event_id: "ipl-mania", event_name: "IPL Mania", total: 6 },
+  { event_id: "treasure-hunt", event_name: "Treasure Hunt", total: 6 },
+  { event_id: "b-plan", event_name: "B-Plan", total: 6 },
+  { event_id: "entertainment-eve", event_name: "Entertainment Eve", total: 5 },
+  { event_id: "hacktrepreneur", event_name: "Hacktrepreneur", total: 53 },
+];
+
+/** Paid / expected amount for dummy mode (matches sum of DUMMY_TEAMS_BY_EVENT × fees). */
+const DUMMY_PAID_AMOUNT = 28024;
+
+/** Total registered users shown when dummy mode is on. */
+const DUMMY_USERS_TOTAL = 142;
+
+function applyDummyDashboardData(backendData) {
+  const base = backendData && typeof backendData === "object" ? backendData : {};
+  return {
+    ...base,
+    users: { ...base.users, total: DUMMY_USERS_TOTAL },
+    orders: { ...base.orders, paid_amount: DUMMY_PAID_AMOUNT },
+    teams: {
+      ...base.teams,
+      total: DUMMY_TEAMS_BY_EVENT.reduce((s, e) => s + Number(e.total || 0), 0),
+      by_event: DUMMY_TEAMS_BY_EVENT.map((row) => ({ ...row })),
+    },
+  };
+}
+
 const quickLinks = [
   {
     label: "Event Operations",
@@ -68,7 +106,7 @@ export default function EndeavourDashboard() {
 
         const statsRes = await endeavourApiClient.getDashboardStats();
         const data = statsRes?.data || {};
-        setDashboardData(data);
+        setDashboardData(USE_DUMMY_DASHBOARD_DATA ? applyDummyDashboardData(data) : data);
         setLastUpdated(new Date().toLocaleString());
       } catch (err) {
         setError(err?.message || "Unable to load dashboard metrics");
