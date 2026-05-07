@@ -29,8 +29,8 @@ const EVENT_REGISTRATION_PRICES = {
 };
 
 /**
- * When true, replaces dashboard metrics with consistent dummy data (~₹28k collected,
- * ~76 teams in 70–80 range) regardless of API response. Turn off for live backend stats.
+ * When true, merges dashboard metrics with dummy team counts derived from API vs baselines
+ * in DUMMY_TEAM_TOTALS_BY_EVENT_ID. Turn off for live backend stats only.
  */
 const USE_DUMMY_DASHBOARD_DATA = true;
 
@@ -60,25 +60,54 @@ const DEFAULT_EVENT_NAMES_BY_ID = {
 };
 
 /**
- * Team counts per event: 76 teams total; Σ(teams × fee) = ₹28,024 (~28k).
- * Split follows fee tiers from EVENT_REGISTRATION_PRICES (55×399 + 17×299 + 4×249).
+ * Baseline dummy team counts per event. Compared to each API total:
+ * - API under 10: dummy uses that same API number.
+ * - API at least 10 and greater than baseline: dummy stays strictly above baseline (uses API when higher).
+ * - API at least 10 and less than baseline: dummy stays strictly below baseline (uses API when lower).
+ * - API missing or invalid: baseline is used.
  */
 const DUMMY_TEAM_TOTALS_BY_EVENT_ID = {
-  "ipl-mania": 6,
-  "treasure-hunt": 6,
-  "b-plan": 5,
-  "bgmi-battle-royale": 1,
-  "market-watch": 1,
-  "corporate-arena": 1,
-  "b-quiz": 1,
-  "hacktrepreneur": 55,
+  "ipl-mania": 15,
+  "treasure-hunt": 50,
+  "b-plan": 9,
+  "bgmi-battle-royale": 19,
+  "market-watch": 9,
+  "corporate-arena": 5,
+  "b-quiz": 13,
+  "hacktrepreneur": 13,
 };
-
-/** Paid / expected amount for dummy mode (matches Σ DUMMY_TEAM_TOTALS × fees). */
-const DUMMY_PAID_AMOUNT = 28024;
 
 /** Total registered users shown when dummy mode is on. */
 const DUMMY_USERS_TOTAL = 142;
+
+function resolveDummyTeamCount(apiRaw, baseline) {
+  const base = Math.max(0, Math.round(Number(baseline)) || 0);
+  if (apiRaw === undefined || apiRaw === null || apiRaw === "") {
+    return base;
+  }
+  const apiN = Math.round(Number(apiRaw));
+  if (!Number.isFinite(apiN) || apiN < 0) {
+    return base;
+  }
+  if (apiN < 10) {
+    return apiN;
+  }
+  if (apiN > base) {
+    return Math.max(base + 1, apiN);
+  }
+  if (apiN < base) {
+    return Math.max(0, Math.min(base - 1, apiN));
+  }
+  return base;
+}
+
+function sumDummyExpectedAmount(byEventRows) {
+  return byEventRows.reduce((sum, e) => {
+    const n = Number(e.total || 0);
+    const fee = EVENT_REGISTRATION_PRICES[e.event_id] ?? 0;
+    return sum + n * fee;
+  }, 0);
+}
 
 function buildDummyTeamsByEvent(apiByEvent) {
   const rows = Array.isArray(apiByEvent) ? apiByEvent : [];
@@ -101,7 +130,8 @@ function buildDummyTeamsByEvent(apiByEvent) {
     const apiRow = rows.find((r) => r.event_id === event_id);
     const event_name =
       apiRow?.event_name?.trim() || DEFAULT_EVENT_NAMES_BY_ID[event_id] || event_id;
-    const total = DUMMY_TEAM_TOTALS_BY_EVENT_ID[event_id] ?? 0;
+    const baseline = DUMMY_TEAM_TOTALS_BY_EVENT_ID[event_id] ?? 0;
+    const total = resolveDummyTeamCount(apiRow?.total, baseline);
     return { event_id, event_name, total };
   });
 }
@@ -111,11 +141,12 @@ function applyDummyDashboardData(backendData) {
   const apiByEvent = base?.teams?.by_event;
   const by_event = buildDummyTeamsByEvent(apiByEvent);
   const teamsTotal = by_event.reduce((s, e) => s + Number(e.total || 0), 0);
+  const paid_amount = sumDummyExpectedAmount(by_event);
 
   return {
     ...base,
     users: { ...base.users, total: DUMMY_USERS_TOTAL },
-    orders: { ...base.orders, paid_amount: DUMMY_PAID_AMOUNT },
+    orders: { ...base.orders, paid_amount },
     teams: {
       ...base.teams,
       total: teamsTotal,
