@@ -59,6 +59,7 @@ const endeavourMenuItems = [
     roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly,
     children: [
       { path: ENDEAVOUR_PATHS.paymentsVerification, label: "Order Verification", roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly },
+      { path: ENDEAVOUR_PATHS.paymentsVerified, label: "Verified Payments", roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly },
       { path: ENDEAVOUR_PATHS.paymentsAccounts, label: "Payment Accounts", roles: ENDEAVOUR_ALLOWED_ROLES.superadminOnly },
     ],
   },
