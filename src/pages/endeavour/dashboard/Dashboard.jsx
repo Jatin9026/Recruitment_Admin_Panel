@@ -1,138 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import {
-  AlertCircle,
-  ArrowRight,
-  RefreshCw,
-  Users,
-  UsersRound,
-  TrendingUp,
-  DollarSign,
-  BarChart3,
-  Calculator,
-} from "lucide-react";
+import { AlertCircle, ArrowRight, RefreshCw, Users, UsersRound, TrendingUp, DollarSign, BarChart3 } from "lucide-react";
 import { useEndeavourAuthStore } from "../../../store/endeavourAuthStore";
 import { ENDEAVOUR_PATHS } from "../../../modules/endeavour/paths";
 import { endeavourApiClient } from "../../../utils/endeavourApiConfig";
-
-/** Per-team registration fee by event id — source for expected payment calculations. */
-const EVENT_REGISTRATION_PRICES = {
-  "ipl-mania": 299,
-  "treasure-hunt": 299,
-  "bgmi-battle-royale": 249,
-  "b-plan": 299,
-  "market-watch": 249,
-  "corporate-arena": 249,
-  "b-quiz": 249,
-  hacktrepreneur: 399,
-  "entertainment-eve": 299,
-};
-
-/**
- * When true, replaces dashboard metrics with consistent dummy data (~₹28k collected,
- * ~76 teams in 70–80 range) regardless of API response. Turn off for live backend stats.
- */
-const USE_DUMMY_DASHBOARD_DATA = true;
-
-/** Eight events used for dummy dashboard (matches endeavour pricing keys; excludes entertainment-eve). */
-const DUMMY_DASHBOARD_EVENT_IDS = [
-  "ipl-mania",
-  "treasure-hunt",
-  "bgmi-battle-royale",
-  "b-plan",
-  "market-watch",
-  "corporate-arena",
-  "b-quiz",
-  "hacktrepreneur",
-];
-
-/** Fallback labels when API does not return `event_name` for an id. */
-const DEFAULT_EVENT_NAMES_BY_ID = {
-  "ipl-mania": "IPL Mania",
-  "treasure-hunt": "Treasure Hunt",
-  "bgmi-battle-royale": "BGMI Battle Royale",
-  "b-plan": "B-Plan",
-  "market-watch": "Market Watch",
-  "corporate-arena": "Corporate Arena",
-  "b-quiz": "B-Quiz",
-  hacktrepreneur: "Hacktrepreneur",
-  "entertainment-eve": "Entertainment Eve",
-};
-
-/**
- * Team counts per event: 76 teams total; Σ(teams × fee) = ₹28,024 (~28k).
- * Split follows fee tiers from EVENT_REGISTRATION_PRICES (55×399 + 17×299 + 4×249).
- */
-const DUMMY_TEAM_TOTALS_BY_EVENT_ID = {
-  "ipl-mania": 7,
-  "treasure-hunt": 40,
-  "b-plan": 9,
-  "bgmi-battle-royale": 19,
-  "market-watch": 9,
-  "corporate-arena": 5,
-  "b-quiz": 13,
-  hacktrepreneur: 13,
-};
-
-/** Paid / expected amount for dummy mode (matches Σ DUMMY_TEAM_TOTALS × fees). */
-const DUMMY_PAID_AMOUNT = 27336;
-
-/** Total registered users shown when dummy mode is on. */
-const DUMMY_USERS_TOTAL = 142;
-
-function buildDummyTeamsByEvent(apiByEvent) {
-  const rows = Array.isArray(apiByEvent) ? apiByEvent : [];
-  const firstApiIndexById = new Map();
-  rows.forEach((row, idx) => {
-    const id = row?.event_id;
-    if (
-      id &&
-      EVENT_REGISTRATION_PRICES[id] != null &&
-      !firstApiIndexById.has(id)
-    ) {
-      firstApiIndexById.set(id, idx);
-    }
-  });
-
-  const orderedIds = [...DUMMY_DASHBOARD_EVENT_IDS].sort((a, b) => {
-    const ia = firstApiIndexById.has(a) ? firstApiIndexById.get(a) : 9999;
-    const ib = firstApiIndexById.has(b) ? firstApiIndexById.get(b) : 9999;
-    if (ia !== ib) return ia - ib;
-    return (
-      DUMMY_DASHBOARD_EVENT_IDS.indexOf(a) -
-      DUMMY_DASHBOARD_EVENT_IDS.indexOf(b)
-    );
-  });
-
-  return orderedIds.map((event_id) => {
-    const apiRow = rows.find((r) => r.event_id === event_id);
-    const event_name =
-      apiRow?.event_name?.trim() ||
-      DEFAULT_EVENT_NAMES_BY_ID[event_id] ||
-      event_id;
-    const total = DUMMY_TEAM_TOTALS_BY_EVENT_ID[event_id] ?? 0;
-    return { event_id, event_name, total };
-  });
-}
-
-function applyDummyDashboardData(backendData) {
-  const base =
-    backendData && typeof backendData === "object" ? backendData : {};
-  const apiByEvent = base?.teams?.by_event;
-  const by_event = buildDummyTeamsByEvent(apiByEvent);
-  const teamsTotal = by_event.reduce((s, e) => s + Number(e.total || 0), 0);
-
-  return {
-    ...base,
-    users: { ...base.users, total: DUMMY_USERS_TOTAL },
-    orders: { ...base.orders, paid_amount: DUMMY_PAID_AMOUNT },
-    teams: {
-      ...base.teams,
-      total: teamsTotal,
-      by_event,
-    },
-  };
-}
 
 const quickLinks = [
   {
@@ -172,11 +43,10 @@ export default function EndeavourDashboard() {
 
         setError("");
 
-        const statsRes = await endeavourApiClient.getDashboardStats();
-        const data = statsRes?.data || {};
-        setDashboardData(
-          USE_DUMMY_DASHBOARD_DATA ? applyDummyDashboardData(data) : data,
-        );
+        const response = await endeavourApiClient.getDashboardStats();
+        const data = response?.data || {};
+
+        setDashboardData(data);
         setLastUpdated(new Date().toLocaleString());
       } catch (err) {
         setError(err?.message || "Unable to load dashboard metrics");
@@ -185,40 +55,18 @@ export default function EndeavourDashboard() {
         setRefreshing(false);
       }
     },
-    [],
+    []
   );
 
   React.useEffect(() => {
     fetchDashboardData({ showLoader: true });
   }, [fetchDashboardData]);
 
+  const teams = dashboardData?.teams || {};
   const orders = dashboardData?.orders || {};
   const eventWiseData = dashboardData?.teams?.by_event || [];
   const paidAmount = Number(orders.paid_amount || 0);
-  const totalEventTeams = eventWiseData.reduce(
-    (sum, item) => sum + Number(item?.total || 0),
-    0,
-  );
-
-  const teamFeeBreakdown = React.useMemo(() => {
-    const rows = eventWiseData.map((item) => {
-      const teamCount = Number(item?.total || 0);
-      const unitPrice = EVENT_REGISTRATION_PRICES[item.event_id] ?? 0;
-      const subtotal = teamCount * unitPrice;
-      return {
-        event_id: item.event_id,
-        event_name: item.event_name || item.event_id,
-        teamCount,
-        unitPrice,
-        subtotal,
-      };
-    });
-    const manualTotalFromTeams = rows.reduce((sum, r) => sum + r.subtotal, 0);
-    return { rows, manualTotalFromTeams };
-  }, [eventWiseData]);
-
-  const { rows: teamFeeRows, manualTotalFromTeams } = teamFeeBreakdown;
-  const paymentDelta = paidAmount - manualTotalFromTeams;
+  const totalEventTeams = eventWiseData.reduce((sum, item) => sum + Number(item?.total || 0), 0);
 
   const statCards = [
     {
@@ -237,24 +85,17 @@ export default function EndeavourDashboard() {
     },
     {
       title: "Total Teams",
-      value: 76,
+      value: dashboardData?.teams?.total || 0,
       subtitle: "Teams formed across all events",
       icon: UsersRound,
       accent: "from-indigo-600 to-indigo-500",
     },
     {
-      title: "Paid Amount (orders)",
+      title: "Paid Amount",
       value: `₹${paidAmount.toFixed(2)}`,
-      subtitle: "Recorded collected amount",
+      subtitle: "Total amount collected",
       icon: DollarSign,
       accent: "from-emerald-600 to-emerald-500",
-    },
-    {
-      title: "Expected from teams",
-      value: `₹27336.00`,
-      subtitle: "Teams × registration fee per event",
-      icon: Calculator,
-      accent: "from-teal-600 to-teal-500",
     },
   ];
 
@@ -262,21 +103,11 @@ export default function EndeavourDashboard() {
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       {/* Header Section */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-          Endeavour Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-          Dashboard
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-          Real-time event registration statistics and financial overview.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Endeavour Admin</p>
+        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Dashboard</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">Real-time event registration statistics and financial overview.</p>
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          Logged in as{" "}
-          <span className="font-semibold">
-            {user?.name || "Endeavour Admin"}
-          </span>{" "}
-          ({user?.email || "unknown"})
+          Logged in as <span className="font-semibold">{user?.name || "Endeavour Admin"}</span> ({user?.email || "unknown"})
         </div>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -286,23 +117,17 @@ export default function EndeavourDashboard() {
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh Data
           </button>
-          <span className="text-xs text-slate-500 sm:ml-1">
-            Last updated: {lastUpdated || "-"}
-          </span>
+          <span className="text-xs text-slate-500 sm:ml-1">Last updated: {lastUpdated || "-"}</span>
         </div>
       </section>
 
       {loading ? (
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <RefreshCw className="mx-auto h-6 w-6 animate-spin text-emerald-600" />
-          <p className="mt-2 text-sm text-slate-600">
-            Loading dashboard data...
-          </p>
+          <p className="mt-2 text-sm text-slate-600">Loading dashboard data...</p>
         </div>
       ) : error ? (
         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800">
@@ -317,21 +142,17 @@ export default function EndeavourDashboard() {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {statCards.map((card) => (
               <article
                 key={card.title}
                 className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                <div
-                  className={`inline-flex rounded-lg bg-gradient-to-br p-2 text-white ${card.accent}`}
-                >
+                <div className={`inline-flex rounded-lg bg-gradient-to-br p-2 text-white ${card.accent}`}>
                   <card.icon className="h-5 w-5" />
                 </div>
                 <p className="mt-3 text-sm text-slate-500">{card.title}</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">
-                  {card.value}
-                </p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">{card.value}</p>
                 <p className="mt-1 text-xs text-slate-500">{card.subtitle}</p>
               </article>
             ))}
@@ -341,36 +162,23 @@ export default function EndeavourDashboard() {
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-slate-900">
-                Event-wise Team Registration
-              </h2>
+              <h2 className="text-lg font-semibold text-slate-900">Event-wise Team Registration</h2>
             </div>
-            <p className="mt-1 text-sm text-slate-600">
-              Total teams formed per event
-            </p>
+            <p className="mt-1 text-sm text-slate-600">Total teams formed per event</p>
 
             {eventWiseData && eventWiseData.length > 0 ? (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                        Event Name
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                        Teams
-                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700">Event Name</th>
+                      <th className="px-4 py-3 text-right font-semibold text-slate-700">Teams</th>
                     </tr>
                   </thead>
                   <tbody>
                     {eventWiseData.map((item) => (
-                      <tr
-                        key={item.event_id}
-                        className="border-b border-slate-100 hover:bg-slate-50"
-                      >
-                        <td className="px-4 py-3 text-slate-700 font-medium">
-                          {item.event_name || item.event_id}
-                        </td>
+                      <tr key={item.event_id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-700 font-medium">{item.event_name || item.event_id}</td>
                         <td className="px-4 py-3 text-right">
                           <span className="inline-flex items-center justify-center rounded-lg bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
                             {item.total}
@@ -383,167 +191,35 @@ export default function EndeavourDashboard() {
 
                 {/* Summary Row */}
                 <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 text-sm">
-                  <span className="font-semibold text-slate-900">
-                    Total Teams Across Events
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {totalEventTeams}
-                  </span>
+                  <span className="font-semibold text-slate-900">Total Teams Across Events</span>
+                  <span className="font-semibold text-slate-900">{totalEventTeams}</span>
                 </div>
               </div>
             ) : (
               <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
-                <p className="text-sm">
-                  No event-wise registration data available
-                </p>
-              </div>
-            )}
-          </section>
-
-          {/* Expected payment from team counts × fee */}
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-teal-600" />
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Expected payment by event
-                </h2>
-              </div>
-              <p className="text-sm font-semibold text-slate-800">
-                Total expected:{" "}
-                <span className="text-teal-700">
-                  ₹{manualTotalFromTeams.toFixed(2)}
-                </span>
-              </p>
-            </div>
-            <p className="mt-1 text-sm text-slate-600">
-              Each row is teams × that event&apos;s registration fee defined in
-              EVENT_REGISTRATION_PRICES at the top of this file.
-            </p>
-
-            {teamFeeRows.length > 0 ? (
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700">
-                        Event
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                        Teams
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                        Fee / team (₹)
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                        Expected (₹)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamFeeRows.map((row) => (
-                      <tr
-                        key={row.event_id}
-                        className="border-b border-slate-100 hover:bg-slate-50"
-                      >
-                        <td className="px-4 py-3 font-medium text-slate-700">
-                          {row.event_name}
-                        </td>
-                        <td className="px-4 py-3 text-right text-slate-800">
-                          {row.teamCount}
-                        </td>
-                        <td className="px-4 py-3 text-right text-slate-800">
-                          {row.unitPrice.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                          ₹{row.subtotal.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
-                  <span className="font-semibold text-slate-900">
-                    Sum of event expected amounts
-                  </span>
-                  <span className="font-semibold text-teal-800">
-                    ₹{manualTotalFromTeams.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-6 text-center text-slate-600">
-                <p className="text-sm">
-                  No team data to calculate expected payments
-                </p>
+                <p className="text-sm">No event-wise registration data available</p>
               </div>
             )}
           </section>
 
           {/* Orders Summary */}
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Payment Summary
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Compare order totals with the manual expected total from team
-              registrations.
-            </p>
+            <h2 className="text-lg font-semibold text-slate-900">Payment Summary</h2>
+            <p className="mt-1 text-sm text-slate-600">Financial overview of event registrations</p>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase text-slate-600">
-                  Paid amount (orders)
-                </p>
-                <p className="mt-2 text-2xl font-bold text-slate-900">
-                  ₹{paidAmount.toFixed(2)}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Amount recorded as collected on orders
-                </p>
-              </div>
-              <div className="rounded-lg border border-teal-200 bg-teal-50/80 p-4">
-                <p className="text-xs font-semibold uppercase text-teal-800">
-                  Expected (teams × fee)
-                </p>
-                <p className="mt-2 text-2xl font-bold text-teal-900">
-                  ₹{manualTotalFromTeams.toFixed(2)}
-                </p>
-                <p className="mt-1 text-sm text-teal-800/90">
-                  Uses dashboard team counts and fixed fees in code
-                </p>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4 sm:col-span-2 lg:col-span-1">
-                <p className="text-xs font-semibold uppercase text-slate-600">
-                  Difference (paid − expected)
-                </p>
-                <p
-                  className={`mt-2 text-2xl font-bold ${
-                    Math.abs(paymentDelta) < 0.01
-                      ? "text-slate-900"
-                      : paymentDelta > 0
-                        ? "text-amber-700"
-                        : "text-rose-700"
-                  }`}
-                >
-                  ₹{paymentDelta.toFixed(2)}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Positive means collected exceeds team-based expectation;
-                  negative means the opposite.
-                </p>
+                <p className="text-xs font-semibold uppercase text-slate-600">Paid Amount</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">₹{paidAmount.toFixed(2)}</p>
+                <p className="mt-1 text-sm text-slate-600">Only the collected amount is shown here</p>
               </div>
             </div>
           </section>
 
           {/* Quick Links */}
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Quick Access
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Navigate to commonly used admin modules
-            </p>
+            <h2 className="text-lg font-semibold text-slate-900">Quick Access</h2>
+            <p className="mt-1 text-sm text-slate-600">Navigate to commonly used admin modules</p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {quickLinks.map((link) => (
@@ -552,12 +228,8 @@ export default function EndeavourDashboard() {
                   to={link.to}
                   className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-50"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
-                    {link.label}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-600">
-                    {link.description}
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">{link.label}</p>
+                  <p className="mt-1 text-xs text-slate-600">{link.description}</p>
                   <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-emerald-700">
                     Open
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
