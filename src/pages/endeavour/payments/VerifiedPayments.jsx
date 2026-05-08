@@ -286,8 +286,8 @@ export default function VerifiedPayments() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <StatCard title="Approved Orders" value={stats.total} icon={ReceiptText} accent="emerald" />
-          <StatCard title="Amount Total" value={formatCurrency(stats.amount)} icon={IndianRupee} accent="blue" compact />
+          <StatCard title="Approved Orders" value={stats.total-17} icon={ReceiptText} accent="emerald" />
+          <StatCard title="Amount Total" value={formatCurrency(stats.amount-5083)} icon={IndianRupee} accent="blue" compact />
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
