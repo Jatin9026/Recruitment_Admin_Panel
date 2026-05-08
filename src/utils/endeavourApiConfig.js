@@ -1,4 +1,4 @@
-const RAW_BASE_URL = import.meta.env.VITE_ENDEAVOUR_API_BASE_URL || "https://endeavour-api.e-cell.in/api/v1";
+const RAW_BASE_URL = import.meta.env.VITE_ENDEAVOUR_API_BASE_URL || "http://localhost:8090/api/v1";
 const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 const TOKEN_KEY = "endeavourAccessToken";
 
@@ -65,6 +65,8 @@ export const ENDEAVOUR_API_ENDPOINTS = {
   SPEAKERS: "/speakers",
   SPONSORS: "/sponsors",
   MEDIA_UPLOAD: "/media/upload",
+  EVENT_MAIL_CAMPAIGNS: "/events/{event_id}/mail-campaigns",
+  EVENT_MAIL_CAMPAIGN_STATUS: "/events/{event_id}/mail-campaigns/{job_id}",
 };
 
 const buildQueryParams = (params = {}) => {
@@ -377,6 +379,24 @@ export class EndeavourApiClient {
       body: formData,
       includeJsonContentType: false,
     });
+  }
+
+  async createMailCampaign(eventId, payload) {
+    const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.EVENT_MAIL_CAMPAIGNS, {
+      event_id: eventId,
+    });
+    return this.request(endpoint, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMailCampaignStatus(eventId, jobId) {
+    const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.EVENT_MAIL_CAMPAIGN_STATUS, {
+      event_id: eventId,
+      job_id: jobId,
+    });
+    return this.request(endpoint);
   }
 }
 
