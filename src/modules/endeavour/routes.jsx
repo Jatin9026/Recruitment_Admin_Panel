@@ -10,6 +10,7 @@ import AuditTools from "../../pages/endeavour/audit/AuditTools";
 import EventManagerPage from "../../pages/endeavour/events/EventManagerPage";
 import EventOperationsPage from "../../pages/endeavour/events/EventOperationsPage";
 import PaymentVerification from "../../pages/endeavour/payments/PaymentVerification";
+import VerifiedPayments from "../../pages/endeavour/payments/VerifiedPayments";
 import PaymentAccounts from "../../pages/endeavour/payments/PaymentAccounts";
 import { ENDEAVOUR_CHILD_PATHS, ENDEAVOUR_PATHS } from "./paths";
 import EndeavourProtectedRoute from "../../components/EndeavourProtectedRoute";
@@ -81,6 +82,14 @@ export const endeavourRoutes = [
     element: (
       <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
         <PaymentVerification />
+      </EndeavourProtectedRoute>
+    ),
+  },
+  {
+    path: ENDEAVOUR_CHILD_PATHS.paymentsVerified,
+    element: (
+      <EndeavourProtectedRoute allowedRoles={ENDEAVOUR_ALLOWED_ROLES.superadminOnly}>
+        <VerifiedPayments />
       </EndeavourProtectedRoute>
     ),
   },

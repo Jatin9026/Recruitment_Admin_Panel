@@ -50,6 +50,7 @@ export const ENDEAVOUR_API_ENDPOINTS = {
   ADMIN_SETTINGS: "/admin/settings",
   ADMIN_AUDIT_PING: "/admin/audit/ping",
   PENDING_VERIFICATION_ORDERS: "/admin/orders/pending-verification",
+  ORDERS_VERIFICATION: "/admin/orders/verification",
   VERIFY_ORDER: "/admin/orders/{order_id}/verify",
   CASH_COLLECT_ORDER: "/admin/orders/{order_id}/cash-collect",
   PAYMENT_ACCOUNTS: "/admin/payments/accounts",
@@ -178,16 +179,17 @@ export class EndeavourApiClient {
     return this.request(query ? `${endpoint}?${query}` : endpoint);
   }
 
-  async getTeamsFull({ page = 1, pageSize = 25, include = "" } = {}) {
+ async getTeamsFull({ page = 1, pageSize = 25, include = "", eventId = "" } = {}) {
     const query = buildQueryParams({
       page: String(page),
       page_size: String(pageSize),
       ...(include ? { include } : {}),
+      ...(eventId ? { event_id: String(eventId) } : {}),
     });
 
     return this.request(`${ENDEAVOUR_API_ENDPOINTS.TEAMS_FULL}?${query}`);
   }
-
+  
   async getTeamFull(teamId, include = "") {
     const query = buildQueryParams(include ? { include } : {});
     const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.TEAM_FULL, { team_id: teamId });
@@ -215,6 +217,12 @@ export class EndeavourApiClient {
     async getPendingVerificationOrders(params = {}) {
     const query = buildQueryParams(params);
     const endpoint = ENDEAVOUR_API_ENDPOINTS.PENDING_VERIFICATION_ORDERS;
+    return this.request(query ? `${endpoint}?${query}` : endpoint);
+  }
+
+  async getOrdersVerification(params = {}) {
+    const query = buildQueryParams(params);
+    const endpoint = ENDEAVOUR_API_ENDPOINTS.ORDERS_VERIFICATION;
     return this.request(query ? `${endpoint}?${query}` : endpoint);
   }
 

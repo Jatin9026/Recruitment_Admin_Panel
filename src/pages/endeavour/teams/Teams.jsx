@@ -13,6 +13,19 @@ import { endeavourApiClient } from "../../../utils/endeavourApiConfig";
 
 const includeOptions = ["members", "events", "rounds", "panels", "slots", "attendance", "orders"];
 
+/** Event IDs for GET /api/v1/admin/teams/full?event_id=… */
+const TEAM_EVENT_FILTER_OPTIONS = [
+  { id: "b-plan", label: "B Plan" },
+  { id: "b-quiz", label: "B Quiz" },
+  { id: "bgmi-battle-royale", label: "BGMI Battle Royale" },
+  { id: "corporate-arena", label: "Corporate Arena" },
+  { id: "entertainment-eve", label: "Entertainment Eve" },
+  { id: "hacktrepreneur", label: "Hacktrepreneur" },
+  { id: "ipl-mania", label: "IPL Mania" },
+  { id: "market-watch", label: "Market Watch" },
+  { id: "treasure-hunt", label: "Treasure Hunt" },
+];
+
 const formatDateTime = (value) => {
   if (!value) {
     return "-";
@@ -455,6 +468,7 @@ export default function EndeavourTeams() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [activeIncludes, setActiveIncludes] = useState(["members", "events"]);
+  const [selectedEventId, setSelectedEventId] = useState("");
 
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [detailData, setDetailData] = useState(null);
@@ -476,6 +490,7 @@ export default function EndeavourTeams() {
         page,
         pageSize: pagination.page_size,
         include: includeQuery,
+        eventId: selectedEventId,
       });
 
       const data = response?.data || {};
@@ -495,7 +510,7 @@ export default function EndeavourTeams() {
 
   useEffect(() => {
     fetchTeams({ showLoader: true, page: 1 });
-  }, [includeQuery]);
+  }, [includeQuery, selectedEventId]);
 
   const filteredTeams = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -569,15 +584,41 @@ export default function EndeavourTeams() {
           </button>
         </div>
 
-        <div className="mt-4 relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search by team name, event id, invite code"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500"
-          />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="relative min-w-0 flex-1">
+            <label htmlFor="teams-search" className="mb-1 block text-xs font-medium text-slate-600">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="teams-search"
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by team name, event id, invite code"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500"
+              />
+            </div>
+          </div>
+          <div className="w-full sm:w-64 sm:shrink-0">
+            <label htmlFor="teams-event-filter" className="mb-1 block text-xs font-medium text-slate-600">
+              Event
+            </label>
+            <select
+              id="teams-event-filter"
+              value={selectedEventId}
+              onChange={(event) => setSelectedEventId(event.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 px-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500"
+            >
+              <option value="">All events</option>
+              {TEAM_EVENT_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label} ({opt.id})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
