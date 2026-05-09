@@ -19,6 +19,27 @@ const fmt = (iso) => {
   });
 };
 
+// Interpret a `datetime-local` value as an IST (UTC+5:30) timestamp chosen by
+// the user, convert it to a GMT/UTC ISO string suitable for backend parsing.
+// Example: input "2026-05-09T11:30" -> "2026-05-09T05:00:00Z"
+const localDatetimeToISTIso = (localDt) => {
+  if (!localDt) return "";
+  const parts = String(localDt).split("T");
+  if (parts.length !== 2) return localDt;
+  const date = parts[0];
+  let time = parts[1];
+  time = time.replace(/Z$/, "").split(".")[0];
+  if (/^\d{2}:\d{2}$/.test(time)) time = `${time}:00`;
+  const [year, month, day] = date.split("-").map((s) => Number(s));
+  const [hour, minute, second] = time.split(":").map((s) => Number(s));
+  // Treat the parsed values as IST (UTC+5:30). Compute UTC milliseconds by
+  // creating a UTC moment and subtracting the IST offset (5.5 hours).
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const utcMillis = Date.UTC(year, month - 1, day, hour, minute, second) - istOffsetMs;
+  const d = new Date(utcMillis);
+  return d.toISOString().replace(/\.\d{3}Z$/, "Z");
+};
+
 // ─── Shared UI atoms ──────────────────────────────────────────────────────────
 
 const inputCls =
@@ -190,8 +211,8 @@ function CoordinatorTab({ eventId, rounds, setToast }) {
     const res = await run("assign_coordinator", () =>
       endeavourApiClient.assignPanelCoordinator(eventId, form.roundId, form.panelId, {
         ecell_member_id: form.ecell_member_id.trim(),
-        ...(form.start_time ? { start_time: form.start_time } : {}),
-        ...(form.end_time   ? { end_time: form.end_time }     : {}),
+        ...(form.start_time ? { start_time: localDatetimeToISTIso(form.start_time) } : {}),
+        ...(form.end_time   ? { end_time:   localDatetimeToISTIso(form.end_time)   } : {}),
       })
     );
     if (res) setForm({ roundId: "", panelId: "", ecell_member_id: "", start_time: "", end_time: "" });
@@ -334,7 +355,7 @@ function SlotsTab({ eventId, rounds, setToast }) {
     const res = await run("create_slots", () =>
       endeavourApiClient.createOfflineSlots(eventId, createForm.roundId, {
         ...(createForm.panel_id.trim() ? { panel_id: createForm.panel_id.trim() } : {}),
-        start_time:        createForm.start_time,
+        start_time:        localDatetimeToISTIso(createForm.start_time),
         slot_duration_min: Number(createForm.slot_duration_min),
         slot_count:        Number(createForm.slot_count),
         capacity_per_slot: Number(createForm.capacity_per_slot),

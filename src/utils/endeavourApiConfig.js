@@ -68,6 +68,7 @@ export const ENDEAVOUR_API_ENDPOINTS = {
   MEDIA_UPLOAD: "/media/upload",
   EVENT_MAIL_CAMPAIGNS: "/events/{event_id}/mail-campaigns",
   EVENT_MAIL_CAMPAIGN_STATUS: "/events/{event_id}/mail-campaigns/{job_id}",
+  EVENT_ROUND_PATCH: "/events/{event_id}/rounds/{round_id}",
 };
 
 const buildQueryParams = (params = {}) => {
@@ -395,6 +396,18 @@ export class EndeavourApiClient {
     });
     return this.request(endpoint, {
       method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async patchRound(eventId, roundId, payload = {}) {
+    const endpoint = interpolatePath(ENDEAVOUR_API_ENDPOINTS.EVENT_ROUND_PATCH, {
+      event_id: eventId,
+      round_id: roundId,
+    });
+
+    return this.request(endpoint, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
   }

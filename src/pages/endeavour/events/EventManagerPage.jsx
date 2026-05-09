@@ -35,7 +35,7 @@ const STATUS_BADGE = {
 
 const emptyRound = () => ({
   _key: Math.random().toString(36).slice(2),
-  name: "", sequence: "", mode: "online", starts_at: "", ends_at: "",
+  name: "", sequence: "", panel_count: "", mode: "online", starts_at: "", ends_at: "",
 });
 
 const STATUS_OPTIONS = ["", "upcoming", "live", "completed"];
@@ -167,7 +167,7 @@ function RoundBuilder({ rounds, onChange }) {
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <Field label="Name" required>
                   <input
                     className={inputCls}
@@ -183,6 +183,16 @@ function RoundBuilder({ rounds, onChange }) {
                     placeholder="1"
                     value={round.sequence}
                     onChange={(e) => update(round._key, "sequence", e.target.value)}
+                  />
+                </Field>
+                <Field label="Panels" hint="count">
+                  <input
+                    className={inputCls}
+                    type="number"
+                    min="0"
+                    placeholder="1"
+                    value={round.panel_count}
+                    onChange={(e) => update(round._key, "panel_count", e.target.value)}
                   />
                 </Field>
               </div>
@@ -409,8 +419,10 @@ function EventFormModal({ open, onClose, prefill, onSuccess }) {
         end_time:   toLocal(ev?.end_time),
         rounds: rounds.map(({ round }, idx) => ({
           _key:      round?.id || String(idx),
+          id:        round?.id || undefined,
           name:      round?.name || "",
           sequence:  round?.sequence ?? idx + 1,
+          panel_count: round?.panel_count ?? "",
           mode:      round?.mode || "online",
           starts_at: toLocal(round?.starts_at),
           ends_at:   toLocal(round?.ends_at),
@@ -429,19 +441,37 @@ function EventFormModal({ open, onClose, prefill, onSuccess }) {
     if (!isEdit && !form.id.trim())   { setError("Event ID is required"); return; }
 
     const rounds = form.rounds.map(({ _key, ...r }) => ({
-      ...r, sequence: Number(r.sequence),
+      ...r,
+      sequence: Number(r.sequence),
+      ...(r.panel_count !== undefined && r.panel_count !== "" ? { panel_count: Number(r.panel_count) } : {}),
     }));
 
     try {
       setSaving(true);
       setError("");
       if (isEdit) {
-        await endeavourApiClient.updateEvent(form.id, {
-          name:       form.name.trim(),
-          start_time: form.start_time,
-          end_time:   form.end_time,
-          rounds,
-        });
+          // Update top-level event fields (avoid sending full rounds array)
+          await endeavourApiClient.updateEvent(form.id, {
+            name:       form.name.trim(),
+            start_time: form.start_time,
+            end_time:   form.end_time,
+          });
+
+          // Patch existing rounds individually using the new PATCH route
+          await Promise.all(rounds.map(async (r) => {
+            if (r.id) {
+              const payload = {
+                ...(r.name !== undefined ? { name: r.name } : {}),
+                ...(r.sequence !== undefined ? { sequence: Number(r.sequence) } : {}),
+                ...(r.panel_count !== undefined ? { panel_count: Number(r.panel_count) } : {}),
+                ...(r.mode ? { mode: r.mode } : {}),
+                ...(r.starts_at ? { starts_at: r.starts_at } : {}),
+                ...(r.ends_at ? { ends_at: r.ends_at } : {}),
+              };
+              return endeavourApiClient.patchRound(form.id, r.id, payload);
+            }
+            return null;
+          }));
         onSuccess(`"${form.name}" updated successfully`);
       } else {
         await endeavourApiClient.createEvent({
