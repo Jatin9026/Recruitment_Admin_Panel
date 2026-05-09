@@ -131,13 +131,13 @@ export default function EndeavourDashboard() {
       icon: UsersRound,
       accent: "from-indigo-600 to-indigo-500",
     },
-    {
-      title: "Paid Amount (orders)",
-      value: `₹${paidAmount.toFixed(2)}`,
-      subtitle: "Recorded collected amount",
-      icon: DollarSign,
-      accent: "from-emerald-600 to-emerald-500",
-    },
+    // {
+    //   title: "Paid Amount (orders)",
+    //   value: `₹${paidAmount.toFixed(2)}`,
+    //   subtitle: "Recorded collected amount",
+    //   icon: DollarSign,
+    //   accent: "from-emerald-600 to-emerald-500",
+    // },
     {
       title: "Expected from teams",
       value: `₹${manualTotalFromTeams.toFixed(2)}`,
