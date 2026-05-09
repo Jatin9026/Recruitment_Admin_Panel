@@ -120,6 +120,7 @@ export default function VerifiedPayments() {
         order.event_id,
         order.user_id,
         order.user_name,
+        order.user_email,
         order.upi_id,
         order.utr_number,
         order.payment_mode,
@@ -268,7 +269,7 @@ export default function VerifiedPayments() {
                   type="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search order, UTR, user, UPI..."
+                  placeholder="Search order, UTR, user, email, UPI..."
                   className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500"
                 />
               </div>
@@ -351,6 +352,9 @@ export default function VerifiedPayments() {
                             {order.user_name || "Unknown user"}
                           </p>
                           <p className="text-xs text-slate-500">ID {shortId(order.user_id)}</p>
+                          {order.user_email && (
+                            <p className="text-xs text-slate-500 break-all">{order.user_email}</p>
+                          )}
                           <p className="text-xs text-slate-500">Event {order.event_id || "—"}</p>
                           <p className="text-xs text-slate-500">Account {shortId(order.assigned_account_id)}</p>
                         </div>

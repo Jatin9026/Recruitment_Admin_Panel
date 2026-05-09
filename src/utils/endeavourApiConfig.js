@@ -1,7 +1,7 @@
 const RAW_BASE_URL = import.meta.env.VITE_ENDEAVOUR_API_BASE_URL || "https://endeavour-api.e-cell.in/api/v1";
 const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 const TOKEN_KEY = "endeavourAccessToken";
-
+0
 const getAuthHeaders = ({ includeJsonContentType = true } = {}) => {
   const token = localStorage.getItem(TOKEN_KEY);
   return {
