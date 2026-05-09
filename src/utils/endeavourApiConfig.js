@@ -1,4 +1,4 @@
-const RAW_BASE_URL = import.meta.env.VITE_ENDEAVOUR_API_BASE_URL || "http://localhost:8090/api/v1";
+const RAW_BASE_URL = import.meta.env.VITE_ENDEAVOUR_API_BASE_URL || "https://endeavour-api.e-cell.in/api/v1";
 const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 const TOKEN_KEY = "endeavourAccessToken";
 
